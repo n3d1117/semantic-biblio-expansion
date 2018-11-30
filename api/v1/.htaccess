@@ -1,0 +1,2 @@
+RewriteEngine On
+RewriteRule ^records/?$ records.php [NC,L]
