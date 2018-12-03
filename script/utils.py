@@ -11,6 +11,7 @@ def record2dict(r):
         'type': ', '.join(r.metadata['type']) if 'type' in r.metadata else '',
         'format': r.metadata['format'][0] if 'format' in r.metadata else '',
         'relation': r.metadata['relation'][0] if 'relation' in r.metadata else '',
+        'link': 'https://web.e.toscana.it' + r.metadata['identifier'][0].split("http://localhost")[1],
     }
 
 

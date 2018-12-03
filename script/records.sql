@@ -12,5 +12,6 @@ CREATE TABLE IF NOT EXISTS `records` (
   `publisher` text NOT NULL,
   `type` text NOT NULL,
   `format` text NOT NULL,
-  `relation` text NOT NULL
+  `relation` text NOT NULL,
+  `link` text NOT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=latin1;

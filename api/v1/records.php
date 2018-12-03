@@ -25,7 +25,7 @@ function get_records() {
 	while($row=mysqli_fetch_array($result)) {
       $record = array('id' => $row['id'], 'title' => $row['title'], 'subject' => $row['subject'], 'creator' => $row['creator'], 
 							 'contributor' => $row['contributor'], 'date' => $row['date'], 'description' => $row['description'], 'language' => $row['language'],
-							 'publisher' => $row['publisher'], 'type' => $row['type'], 'format' => $row['format'], 'relation' => $row['relation']);
+							 'publisher' => $row['publisher'], 'type' => $row['type'], 'format' => $row['format'], 'relation' => $row['relation'], 'link' => $row['link']);
       array_push($records, $record);
 	}
 	header('Content-Type: application/json');

@@ -35,16 +35,16 @@ def main():
         count = 0
         array = []
 
-        query = "INSERT INTO records(title, subject, creator, contributor, date, description, language, publisher, type, format, relation)" \
-                "VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        query = "INSERT INTO records(title, subject, creator, contributor, date, description, language, publisher, type, format, relation, link)" \
+                "VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
         print(' [*] parsing first 1000 records...')
         for record in records:
             if count < 1000:
 
                 d = record2dict(record)
-                array.append((d['title'], d['subject'], d['creator'], d['contributor'], d['date'], d['description'],
-                              d['language'], d['publisher'], d['type'], d['format'], d['relation']))
+                array.append((d['title'].strip(), d['subject'], d['creator'], d['contributor'], d['date'], d['description'],
+                              d['language'], d['publisher'], d['type'], d['format'], d['relation'], d['link']))
 
                 count += 1
             else:
