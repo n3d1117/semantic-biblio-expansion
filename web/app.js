@@ -48,7 +48,8 @@ const vm = new Vue({
 		totalRows: 1000,
 		perPage: 25,
 		filter: null,
-		modalInfo: {
+		loadingButtonIndex: null,
+		altroModalInfo: {
 			title: '',
 			contributor: '',
 			date: '',
@@ -61,21 +62,21 @@ const vm = new Vue({
 		}
 	},
 	methods: {
-		info(item, button) {
-			this.modalInfo.title = `Informazioni aggiuntive su "${item.title}"`
-			this.modalInfo.contributor = item.contributor
-			this.modalInfo.date = item.date
-			this.modalInfo.language = item.language
-			this.modalInfo.publisher = item.publisher
-			this.modalInfo.type = item.type
-			this.modalInfo.format = item.format
-			this.modalInfo.relation = item.relation
-			this.modalInfo.link = item.link
-			this.$root.$emit('bv::show::modal', 'modalInfo', button)
+		showAltro(item, button) {
+			this.altroModalInfo.title = `Informazioni aggiuntive su "${item.title}"`
+			this.altroModalInfo.contributor = item.contributor
+			this.altroModalInfo.date = item.date
+			this.altroModalInfo.language = item.language
+			this.altroModalInfo.publisher = item.publisher
+			this.altroModalInfo.type = item.type
+			this.altroModalInfo.format = item.format
+			this.altroModalInfo.relation = item.relation
+			this.altroModalInfo.link = item.link
+			this.$root.$emit('bv::show::modal', 'altroModalInfo', button)
 		},
-		resetModal() {
-			this.modalInfo.title = ''
-			this.modalInfo.content = ''
+		resetModals() {
+			this.altroModalInfo.title = ''
+			this.altroModalInfo.content = ''
 		},
 		filterUpdate: _.debounce(function (value) {
 			this.filter = value;
@@ -101,3 +102,15 @@ const vm = new Vue({
 		});
 	}
 });
+
+
+(function ($) {
+	$.fn.button = function (action) {
+		if (action === 'loading' && this.data('loading-text')) {
+			this.data('original-text', this.html()).html(this.data('loading-text')).prop('disabled', true);
+		}
+		if (action === 'reset' && this.data('original-text')) {
+			this.html(this.data('original-text')).prop('disabled', false);
+		}
+	};
+}(jQuery));
