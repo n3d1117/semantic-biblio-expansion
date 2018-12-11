@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<head>
+	<meta charset="utf-8">
+	<title>records</title>
+    <script src="//unpkg.com/vue/dist/vue.min.js"></script>
+    <script src="//unpkg.com/axios/dist/axios.min.js"></script>
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='records.css') }}">
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css">
+	<link rel="stylesheet" type="text/css" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css" />
+	<link rel="stylesheet" type="text/css" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css" />
+</head>
+
+<body>
+
+	<div id="table" class="container" v-cloak>
+
+		<b-input-group size="lg" class="mb-5" id="search" append="&#x1F50D;">
+			<b-form-input type="text" v-model="filter" v-on:input="filterUpdate" placeholder="Ricerca per titolo, soggetti, autore, descrizione..."></b-form-input>
+		</b-input-group>
+
+		<b-table hover striped bordered outlined :items="records" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filterHandler" @filtered="onFiltered" caption-top>
+			<template slot="more" slot-scope="data">
+				<b-button class="mb-2" variant="success" size="sm" @click.stop="showAltro(data.item, $event.target)">Altro</b-button>
+				<!--
+				<b-button v-if="loadingButtonIndex === data.index" variant="primary" size="sm" disabled><i class='fa fa-spinner fa-spin'></i></b-button>
+				<b-button v-else variant="primary" size="sm" @click.stop="espandi(data.item, data.index, $event.target)">Espandi</b-button>
+				-->
+			</template>
+		</b-table>
+		<b-pagination align="center" size="md" :total-rows="totalRows" v-model="currentPage" :per-page="perPage"></b-pagination>
+
+		<b-modal centered id="altroModalInfo" :title="altroModalInfo.title" ok-only>
+			<p style="display:inline" v-if="altroModalInfo.contributor !== ''"><strong>• Autore secondario: </strong><% altroModalInfo.contributor %><br></p>
+			<p style="display:inline" v-if="altroModalInfo.date !== ''"><strong>• Data: </strong><% altroModalInfo.date %><br></p>
+			<p style="display:inline" v-if="altroModalInfo.language !== ''"><strong>• Lingua: </strong><% altroModalInfo.language %><br></p>
+			<p style="display:inline" v-if="altroModalInfo.publisher !== ''"><strong>• Editore: </strong><% altroModalInfo.publisher %><br></p>
+			<p style="display:inline" v-if="altroModalInfo.type !== ''"><strong>• Tipo: </strong><% altroModalInfo.type %><br></p>
+			<p style="display:inline" v-if="altroModalInfo.format !== ''"><strong>• Formato: </strong><% altroModalInfo.format %><br></p>
+			<p style="display:inline" v-if="altroModalInfo.relation !== ''"><strong>• Relazione: </strong><% altroModalInfo.relation %><br></p>
+			<p style="display:inline"><strong>• Link: </strong><a href="altroModalInfo.link" target="_blank">Clicca qui</a></p>
+		</b-modal>
+	</div>
+
+	<script src="//unpkg.com/babel-polyfill@latest/dist/polyfill.min.js"></script>
+	<script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+	<script src="//unpkg.com/lodash@4.16.0"></script>
+	<script src="//code.jquery.com/jquery.js"></script>
+	<script src="{{ url_for('static', filename='records.js') }}"></script>
+</body>
+
+</html>

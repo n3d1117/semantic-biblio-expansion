@@ -1,66 +1,23 @@
-const vm = new Vue({
+new Vue({
 	el: '#table',
 	data: {
 		records: [],
 		fields: [
-			{
-				key: 'id',
-				sortable: true,
-				thStyle: {
-					width: '60px'
-				}
-			},
-			{
-				key: 'title',
-				label: 'Titolo',
-				sortable: true,
-				thStyle: {
-					minWidth: '250px'
-				}
-			},
-			{
-				key: 'creator',
-				label: 'Autore',
-				sortable: true,
-				thStyle: {
-					minWidth: '100px'
-				}
-			},
-			{
-				key: 'subject',
-				label: 'Soggetti',
-				sortable: true
-			},
-			{
-				key: 'description',
-				label: 'Descrizione',
-				sortable: true
-			},
-			{
-				key: 'more',
-				label: '',
-				thStyle: {
-					width: '90px'
-				}
-			},
+			{ key: 'id', sortable: true, thStyle: { width: '60px' } },
+			{ key: 'title', label: 'Titolo', sortable: true, thStyle: { minWidth: '250px' } },
+			{ key: 'creator', label: 'Autore', sortable: true, thStyle: { minWidth: '100px' } },
+			{ key: 'subject', label: 'Soggetti', sortable: true },
+			{ key: 'description', label: 'Descrizione', sortable: true },
+			{ key: 'more', label: '', thStyle: { width: '90px' } },
 		],
 		currentPage: 1,
 		totalRows: 1000,
 		perPage: 25,
 		filter: null,
 		loadingButtonIndex: null,
-		altroModalInfo: {
-			title: '',
-			contributor: '',
-			date: '',
-			language: '',
-			publisher: '',
-			type: '',
-			format: '',
-			relation: '',
-			link: ''
-		}
+		altroModalInfo: { title: '', contributor: '', date: '', language: '', publisher: '', type: '', format: '', relation: '', link: '' }
 	},
+    delimiters: ["<%","%>"],
 	methods: {
 		showAltro(item, button) {
 			this.altroModalInfo.title = `Informazioni aggiuntive su "${item.title}"`
@@ -84,7 +41,10 @@ const vm = new Vue({
 		filterHandler(item) {
 			if (this.filter) {
 				let filter = this.filter.toLowerCase()
-				return item.title.toLowerCase().includes(filter) || item.creator.toLowerCase().includes(filter) || item.description.toLowerCase().includes(filter) || item.subject.toLowerCase().includes(filter)
+				return item.title.toLowerCase().includes(filter) ||
+					   item.creator.toLowerCase().includes(filter) ||
+					   item.description.toLowerCase().includes(filter) ||
+					   item.subject.toLowerCase().includes(filter)
 			} else {
 				return true
 			}
@@ -95,8 +55,8 @@ const vm = new Vue({
 		}
 	},
 	mounted() {
-		axios.get('/api/v1/records/').then((response) => {
-			this.records = response.data.records;
+		axios.get('/api/v1/records').then((response) => {
+			this.records = response.data;
 		}).catch(error => {
 			console.log(error);
 		});
