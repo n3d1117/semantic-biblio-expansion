@@ -1,5 +1,6 @@
 from sickle import Sickle
 from database import db as database
+import time
 
 
 def record2dict(r):
@@ -20,6 +21,10 @@ def record2dict(r):
 
 
 def do_import(max_num):
+
+    x = 0
+    bit = 100 / max_num
+
     print(' [*] connecting to database...')
     db = database.get_db()
 
@@ -45,6 +50,11 @@ def do_import(max_num):
             array.append((d['title'].strip(), d['subject'], d['creator'], d['contributor'], d['date'], d['description'],
                           d['language'], d['publisher'], d['type'], d['format'], d['relation'], d['link']))
             count += 1
+
+            x += bit
+            time.sleep(0.1)
+            desc = "Importing records... ({}/{})".format(count, max_num)
+            yield "data: {}%%{}\n\n".format(str(x), desc)
         else:
             break
 

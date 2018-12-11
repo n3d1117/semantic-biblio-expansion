@@ -22,15 +22,13 @@
 		<b-table hover striped bordered outlined :items="records" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filterHandler" @filtered="onFiltered" caption-top>
 			<template slot="more" slot-scope="data">
 				<b-button class="mb-2" variant="success" size="sm" @click.stop="showAltro(data.item, $event.target)">Altro</b-button>
-				<!--
 				<b-button v-if="loadingButtonIndex === data.index" variant="primary" size="sm" disabled><i class='fa fa-spinner fa-spin'></i></b-button>
 				<b-button v-else variant="primary" size="sm" @click.stop="espandi(data.item, data.index, $event.target)">Espandi</b-button>
-				-->
 			</template>
 		</b-table>
 		<b-pagination align="center" size="md" :total-rows="totalRows" v-model="currentPage" :per-page="perPage"></b-pagination>
 
-		<b-modal centered id="altroModalInfo" :title="altroModalInfo.title" ok-only>
+		<b-modal centered id="altroModalInfo" @hide="resetModals" :title="altroModalInfo.title" ok-only>
 			<p style="display:inline" v-if="altroModalInfo.contributor !== ''"><strong>• Autore secondario: </strong><% altroModalInfo.contributor %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.date !== ''"><strong>• Data: </strong><% altroModalInfo.date %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.language !== ''"><strong>• Lingua: </strong><% altroModalInfo.language %><br></p>
@@ -39,6 +37,10 @@
 			<p style="display:inline" v-if="altroModalInfo.format !== ''"><strong>• Formato: </strong><% altroModalInfo.format %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.relation !== ''"><strong>• Relazione: </strong><% altroModalInfo.relation %><br></p>
 			<p style="display:inline"><strong>• Link: </strong><a href="altroModalInfo.link" target="_blank">Clicca qui</a></p>
+		</b-modal>
+
+		<b-modal centered id="espandiModalInfo" @hide="resetModals" :title="espandiModalInfo.title" ok-only>
+			<p style="display:inline" v-if="espandiModalInfo.viaf_id !== ''"><strong>• VIAF id: </strong><% espandiModalInfo.viaf_id %><br></p>
 		</b-modal>
 	</div>
 

@@ -13,6 +13,9 @@ def get_viaf_id(author):
 
 
 def do_expand():
+
+    x = 0
+
     print(' [*] connecting to database...')
     db = database.get_db()
 
@@ -23,6 +26,8 @@ def do_expand():
     r = requests.get('http://127.0.0.1:5000/api/v1/records')
     json = r.json()
     exp = []
+
+    bit = 100 / len(json)
 
     query = "INSERT INTO expanded_records(id, viaf_id) VALUES(?, ?)"
 
@@ -41,6 +46,10 @@ def do_expand():
                 viaf_id = tmp2
 
         exp.append((record['id'], viaf_id))
+
+        x += bit
+        desc = "Checking VIAF for record with id {}...".format(record['id'])
+        yield "data: {}%%{}\n\n".format(str(x), desc)
 
     print(' [*] inserting expanded records to the table...')
     db.executemany(query, exp)
