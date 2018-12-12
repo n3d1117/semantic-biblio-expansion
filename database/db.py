@@ -27,5 +27,4 @@ def query_db(query, args=(), one=False):
 def close_db():
     db = getattr(g, '_database', None)
     if db is not None:
-        print('closing db')
         db.close()

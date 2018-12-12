@@ -2,21 +2,20 @@
 <html>
 <head>
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-	<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 	<script>
 	let source = new EventSource("/_import");
 	source.onmessage = function(event) {
 		let data = event.data.split('%%');
 		let progress = data[0];
 		let label = data[1];
-		console.log(progress)
 		$('.progress-bar').css('width', progress+'%').attr('aria-valuenow', progress);
 		$('.progress-bar-label').text(progress.split('.')[0]+'%');
 		$('.under-progress-label').text(label);
 		if (progress >= 100) {
-			source.close()
-			$('.under-progress-label').text('Done!');
+			source.close();
+			$('.under-progress-label').html('Done! <a href="../expand">Expand them all!</a>');
 		}
 	}
 	</script>

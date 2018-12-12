@@ -23,8 +23,6 @@ def records():
     return render_template('records.html')
 
 
-# IMPORT
-
 @app.route('/import')
 def do_import():
     return send_file('templates/import_stream.html')
@@ -33,11 +31,6 @@ def do_import():
 @app.route('/_import')
 def _import():
     return Response(stream_with_context(import_records.do_import(50)), mimetype='text/event-stream')
-
-# END IMPORT
-
-
-# EXPAND
 
 
 @app.route('/expand')
@@ -49,10 +42,6 @@ def do_expand():
 def _expand():
     return Response(stream_with_context(expand_records.do_expand()), mimetype='text/event-stream')
 
-# END EXPAND
-
-
-# API
 
 @app.route('/api/v1/records', methods=['GET'])
 def get_records():
@@ -72,11 +61,6 @@ def get_expanded_record():
     records = db.query_db('SELECT * FROM expanded_records WHERE id = {}'.format(id))
     return jsonify(records)
 
-# END API
-
-
-# INIT DB
-
 
 @app.route('/init_db')
 def init_db():
@@ -86,8 +70,6 @@ def init_db():
             d.cursor().executescript(f.read())
         d.commit()
         return 'database initialized correctly!'
-
-# END INIT DB
 
 
 if __name__ == '__main__':
