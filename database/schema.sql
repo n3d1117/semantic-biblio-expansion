@@ -20,5 +20,8 @@ CREATE TABLE records (
 CREATE TABLE expanded_records (
   id INTEGER PRIMARY KEY,
   viaf_id TEXT,
+  author_other_works TEXT,
+  author_wiki_page TEXT,
+  author_wiki_info TEXT,
   FOREIGN KEY (id) REFERENCES records (id)
 );

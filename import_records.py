@@ -1,6 +1,5 @@
 from sickle import Sickle
 from database import db as database
-import time
 
 
 def record2dict(r):
@@ -52,7 +51,7 @@ def do_import(max_num):
             count += 1
 
             x += bit
-            time.sleep(0.1)
+
             desc = "Importing records... ({}/{})".format(count, max_num)
             yield "data: {}%%{}\n\n".format(str(x), desc)
         else:

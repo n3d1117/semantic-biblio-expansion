@@ -16,7 +16,7 @@ new Vue({
 		filter: null,
 		loadingButtonIndex: null,
 		altroModalInfo: { title: '', contributor: '', date: '', language: '', publisher: '', type: '', format: '', relation: '', link: '' },
-		espandiModalInfo: { viaf_id: '' },
+		espandiModalInfo: { title: '', viaf_id: '', author_other_works: '', author_wiki_page: '', author_wiki_info: '' },
 	},
     delimiters: ["<%","%>"],
 	methods: {
@@ -37,6 +37,9 @@ new Vue({
 			axios.get(`/api/v1/get_expanded_record?id=${item.id}`).then((response) => {
 				this.espandiModalInfo.title = 'Risultato espansione'
 				this.espandiModalInfo.viaf_id = response.data[0].viaf_id
+				this.espandiModalInfo.author_other_works = response.data[0].author_other_works.split('~~').slice(0, 5)
+				this.espandiModalInfo.author_wiki_page = response.data[0].author_wiki_page
+				this.espandiModalInfo.author_wiki_info = response.data[0].author_wiki_info
 				this.$root.$emit('bv::show::modal', 'espandiModalInfo', button)
 				loadingButtonIndex = null
 			}).catch(error => {
@@ -44,9 +47,7 @@ new Vue({
 			});
 		},
 		resetModals() {
-			this.altroModalInfo.title = ''
 			this.altroModalInfo.content = ''
-			this.espandiModalInfo.title = ''
 			this.espandiModalInfo.content = ''
 		},
 		filterUpdate: _.debounce(function (value) {

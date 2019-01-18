@@ -30,7 +30,7 @@ def do_import():
 
 @app.route('/_import')
 def _import():
-    return Response(stream_with_context(import_records.do_import(50)), mimetype='text/event-stream')
+    return Response(stream_with_context(import_records.do_import(300)), mimetype='text/event-stream')
 
 
 @app.route('/expand')

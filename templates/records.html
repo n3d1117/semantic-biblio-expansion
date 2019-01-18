@@ -23,6 +23,7 @@
 			<template slot="more" slot-scope="data">
 				<b-button class="mb-2" variant="success" size="sm" @click.stop="showAltro(data.item, $event.target)">Altro</b-button>
 				<b-button v-if="loadingButtonIndex === data.index" variant="primary" size="sm" disabled><i class='fa fa-spinner fa-spin'></i></b-button>
+                {# todo hide espandi button when there's no expansion data for that record #}
 				<b-button v-else variant="primary" size="sm" @click.stop="espandi(data.item, data.index, $event.target)">Espandi</b-button>
 			</template>
 		</b-table>
@@ -36,11 +37,14 @@
 			<p style="display:inline" v-if="altroModalInfo.type !== ''"><strong>• Tipo: </strong><% altroModalInfo.type %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.format !== ''"><strong>• Formato: </strong><% altroModalInfo.format %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.relation !== ''"><strong>• Relazione: </strong><% altroModalInfo.relation %><br></p>
-			<p style="display:inline"><strong>• Link: </strong><a href="altroModalInfo.link" target="_blank">Clicca qui</a></p>
+			<p style="display:inline"><strong>• Link: </strong><a :href="altroModalInfo.link" target="_blank">Clicca qui</a></p>
 		</b-modal>
 
-		<b-modal centered id="espandiModalInfo" @hide="resetModals" :title="espandiModalInfo.title" ok-only>
-			<p style="display:inline" v-if="espandiModalInfo.viaf_id !== ''"><strong>• VIAF id: </strong><% espandiModalInfo.viaf_id %><br></p>
+		<b-modal centered id="espandiModalInfo" size="lg" @hide="resetModals" :title="espandiModalInfo.title" ok-only>
+            <p style="display:inline" v-if="espandiModalInfo.viaf_id !== ''"><strong>• Pagina VIAF: </strong><a :href="'https://viaf.org/viaf/' + espandiModalInfo.viaf_id + '/'" target="_blank">https://viaf.org/viaf/<% espandiModalInfo.viaf_id %>/</a><br></p>
+            <p style="display:inline" v-if="espandiModalInfo.author_wiki_page !== ''"><strong>• Pagina Wikipedia autore: </strong><a :href="espandiModalInfo.author_wiki_page" target="_blank"><% espandiModalInfo.author_wiki_page %></a><br></p>
+            <p style="display:inline" v-if="espandiModalInfo.author_wiki_info !== ''"><strong>• Biografia autore: </strong><% espandiModalInfo.author_wiki_info %><br></p>
+            <div v-if="espandiModalInfo.author_other_works[0] !== ''"><p style="display:inline"><strong>• Altre opere: </strong></p><br><ul><li v-for="work in espandiModalInfo.author_other_works"><% work %></li></ul></div>
 		</b-modal>
 	</div>
 
