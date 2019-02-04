@@ -10,14 +10,14 @@
 		let data = event.data.split('%%');
 		let progress = data[0];
 		let label = data[1];
-		$('.progress-bar').css('width', progress+'%').attr('aria-valuenow', progress);
-		$('.progress-bar-label').text(progress.split('.')[0]+'%');
-		$('.under-progress-label').text(label);
-		if (progress >= 99) {
+        $('.progress-bar').css('width', progress+'%').attr('aria-valuenow', progress);
+        $('.progress-bar-label').text(progress.split('.')[0]+'%');
+		if (label == 'done') {
 			source.close();
-			$('.progress-bar-label').text('100%');
 			$('.under-progress-label').html('Done! <a href="../records">See records</a>');
-		}
+        } else {
+		    $('.under-progress-label').text(label);
+        }
 	}
 	</script>
 </head>

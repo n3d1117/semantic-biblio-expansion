@@ -13,7 +13,7 @@
 		$('.progress-bar').css('width', progress+'%').attr('aria-valuenow', progress);
 		$('.progress-bar-label').text(progress.split('.')[0]+'%');
 		$('.under-progress-label').text(label);
-		if (progress >= 99) {
+		if (progress > 99) { // todo better
 			source.close();
 			$('.progress-bar-label').text('100%');
 			$('.under-progress-label').html('Done! <a href="../expand">Expand them all!</a>');

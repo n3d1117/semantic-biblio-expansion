@@ -16,46 +16,47 @@ new Vue({
 		filter: null,
 		loadingButtonIndex: null,
 		altroModalInfo: { title: '', contributor: '', date: '', language: '', publisher: '', type: '', format: '', relation: '', link: '' },
-		espandiModalInfo: { title: '', viaf_id: '', author_other_works: '', author_wiki_page: '', author_wiki_info: '' },
+		espandiModalInfo: { title: '', viaf_id: '', author_other_works: '', author_wiki_page: '', author_wiki_info: '', entities: [] },
 	},
     delimiters: ["<%","%>"],
 	methods: {
 		showAltro(item, button) {
-			this.altroModalInfo.title = `Informazioni aggiuntive su "${item.title}"`
-			this.altroModalInfo.contributor = item.contributor
-			this.altroModalInfo.date = item.date
-			this.altroModalInfo.language = item.language
-			this.altroModalInfo.publisher = item.publisher
-			this.altroModalInfo.type = item.type
-			this.altroModalInfo.format = item.format
-			this.altroModalInfo.relation = item.relation
-			this.altroModalInfo.link = item.link
-			this.$root.$emit('bv::show::modal', 'altroModalInfo', button)
+			this.altroModalInfo.title = `Informazioni aggiuntive su "${item.title}"`;
+			this.altroModalInfo.contributor = item.contributor;
+			this.altroModalInfo.date = item.date;
+			this.altroModalInfo.language = item.language;
+			this.altroModalInfo.publisher = item.publisher;
+			this.altroModalInfo.type = item.type;
+			this.altroModalInfo.format = item.format;
+			this.altroModalInfo.relation = item.relation;
+			this.altroModalInfo.link = item.link;
+			this.$root.$emit('bv::show::modal', 'altroModalInfo', button);
 		},
 		espandi(item, index, button) {
 			loadingButtonIndex = index
 			axios.get(`/api/v1/get_expanded_record?id=${item.id}`).then((response) => {
-				this.espandiModalInfo.title = 'Risultato espansione'
-				this.espandiModalInfo.viaf_id = response.data[0].viaf_id
-				this.espandiModalInfo.author_other_works = response.data[0].author_other_works.split('~~').slice(0, 5)
-				this.espandiModalInfo.author_wiki_page = response.data[0].author_wiki_page
-				this.espandiModalInfo.author_wiki_info = response.data[0].author_wiki_info
-				this.$root.$emit('bv::show::modal', 'espandiModalInfo', button)
-				loadingButtonIndex = null
+				this.espandiModalInfo.title = 'Risultato espansione';
+				this.espandiModalInfo.viaf_id = response.data.viaf_id;
+				this.espandiModalInfo.author_other_works = response.data.author_other_works.split('~~').slice(0, 5);
+				this.espandiModalInfo.author_wiki_page = response.data.author_wiki_page;
+				this.espandiModalInfo.author_wiki_info = response.data.author_wiki_info;
+				this.espandiModalInfo.entities = response.data.entities;
+				this.$root.$emit('bv::show::modal', 'espandiModalInfo', button);
+				loadingButtonIndex = null;
 			}).catch(error => {
 				console.log(error);
 			});
 		},
 		resetModals() {
-			this.altroModalInfo.content = ''
-			this.espandiModalInfo.content = ''
+			this.altroModalInfo.content = '';
+			this.espandiModalInfo.content = '';
 		},
 		filterUpdate: _.debounce(function (value) {
 			this.filter = value;
 		}, 300),
 		filterHandler(item) {
 			if (this.filter) {
-				let filter = this.filter.toLowerCase()
+				let filter = this.filter.toLowerCase();
 				return item.title.toLowerCase().includes(filter) ||
 					   item.creator.toLowerCase().includes(filter) ||
 					   item.description.toLowerCase().includes(filter) ||
@@ -65,8 +66,8 @@ new Vue({
 			}
 		},
 		onFiltered(filteredItems) {
-			this.totalRows = filteredItems.length
-			this.currentPage = 1
+			this.totalRows = filteredItems.length;
+			this.currentPage = 1;
 		}
 	},
 	mounted() {

@@ -2,6 +2,7 @@ from flask import Flask, jsonify, render_template, send_file, Response, stream_w
 from database import db
 import import_records
 import expand_records
+from collections import Counter
 
 app = Flask(__name__)
 
@@ -23,6 +24,11 @@ def records():
     return render_template('records.html')
 
 
+@app.route('/categories')
+def categories():
+    return render_template('categories.html')
+
+
 @app.route('/import')
 def do_import():
     return send_file('templates/import_stream.html')
@@ -30,7 +36,7 @@ def do_import():
 
 @app.route('/_import')
 def _import():
-    return Response(stream_with_context(import_records.do_import(300)), mimetype='text/event-stream')
+    return Response(stream_with_context(import_records.do_import(50)), mimetype='text/event-stream')
 
 
 @app.route('/expand')
@@ -49,17 +55,72 @@ def get_records():
     return jsonify(records)
 
 
-@app.route('/api/v1/expanded_records', methods=['GET'])
-def get_expanded_records():
-    records = db.query_db('SELECT * FROM expanded_records')
-    return jsonify(records)
-
-
 @app.route('/api/v1/get_expanded_record', methods=['GET'])
 def get_expanded_record():
     id = request.args.get('id')
-    records = db.query_db('SELECT * FROM expanded_records WHERE id = {}'.format(id))
-    return jsonify(records)
+    records = db.query_db("SELECT DISTINCT e.id AS record_id, e.viaf_id, e.author_other_works, e.author_wiki_page, e.author_wiki_info,\
+                            en.entity_id, en.title, en.abstract, en.categories, en.uri\
+                            FROM expanded_records as e, entities as en, entity_for_record as ent\
+                            WHERE e.id = ent.record_id and en.entity_id = ent.entity_id and e.id = {}".format(id))
+
+    # record senza entità
+    if len(records) == 0:
+        records = db.query_db("SELECT e.id AS record_id, e.viaf_id, e.author_other_works, e.author_wiki_page, e.author_wiki_info\
+                               FROM expanded_records as e WHERE e.id = {}".format(id))
+        data = {
+            'id': records[0]['record_id'],
+            'viaf_id': records[0]['viaf_id'],
+            'author_wiki_info': records[0]['author_wiki_info'],
+            'author_wiki_page': records[0]['author_wiki_page'],
+            'author_other_works': records[0]['author_other_works'],
+            'entities': ''
+        }
+        return jsonify(data)
+
+    else:
+        data = {
+            'id': records[0]['record_id'],
+            'viaf_id': records[0]['viaf_id'],
+            'author_wiki_info': records[0]['author_wiki_info'],
+            'author_wiki_page': records[0]['author_wiki_page'],
+            'author_other_works': records[0]['author_other_works'],
+            'entities': []
+        }
+        for r in records:
+            data['entities'].append({
+                'entity_id': r['entity_id'], 'title': r['title'], 'abstract': r['abstract'], 'categories': r['categories'], 'uri': r['uri']
+            })
+        return jsonify(data)
+
+
+@app.route('/api/v1/top_entities', methods=['GET'])
+def get_top_entities():
+    top_entities = db.query_db('SELECT en.title, count(*) as count\
+                                FROM  entity_for_record as e, entities as en\
+                                WHERE e.entity_id = en.entity_id GROUP BY en.title ORDER BY count DESC LIMIT 5')
+    result = {}
+    for e in top_entities:
+        result[e['title']] = e['count']
+    return jsonify(result)
+
+
+@app.route('/api/v1/top_categories', methods=['GET'])
+def get_top_categories():
+    all_categories = db.query_db('SELECT e.id AS record_id, en.categories AS categories\
+                                  FROM expanded_records AS e, entities AS en, entity_for_record AS ent\
+                                  WHERE e.id = ent.record_id and ent.entity_id = en.entity_id\
+                                  ORDER BY e.id')
+    data = {}
+    for cat in all_categories:
+        id = cat['record_id']
+        for ca in cat['categories'].split(', '):
+            if (id not in data or ca not in data[id]) and ca != '':
+                data.setdefault(id, []).append(ca)
+    c = Counter(x for xs in data.values() for x in set(xs)).most_common(5)
+    result = {}
+    for ca in c:
+        result[ca[0]] = ca[1]
+    return jsonify(result)
 
 
 @app.route('/init_db')

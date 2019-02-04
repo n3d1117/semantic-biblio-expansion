@@ -13,6 +13,14 @@
 
 <body>
 
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">semantic-biblio-expansion</a>
+        <div class="navbar-nav">
+            <a class="nav-item nav-link active">Tutti i record <span class="sr-only">(current)</span></a>
+            <a class="nav-item nav-link" href="/categories">Categorie di espansione</a>
+        </div>
+    </nav>
+
 	<div id="table" class="container" v-cloak>
 
 		<b-input-group size="lg" class="mb-5" id="search" append="&#x1F50D;">
@@ -23,8 +31,7 @@
 			<template slot="more" slot-scope="data">
 				<b-button class="mb-2" variant="success" size="sm" @click.stop="showAltro(data.item, $event.target)">Altro</b-button>
 				<b-button v-if="loadingButtonIndex === data.index" variant="primary" size="sm" disabled><i class='fa fa-spinner fa-spin'></i></b-button>
-                {# todo hide espandi button when there's no expansion data for that record #}
-				<b-button v-else variant="primary" size="sm" @click.stop="espandi(data.item, data.index, $event.target)">Espandi</b-button>
+                <b-button v-else variant="primary" size="sm" @click.stop="espandi(data.item, data.index, $event.target)">Espandi</b-button>
 			</template>
 		</b-table>
 		<b-pagination align="center" size="md" :total-rows="totalRows" v-model="currentPage" :per-page="perPage"></b-pagination>
@@ -45,6 +52,7 @@
             <p style="display:inline" v-if="espandiModalInfo.author_wiki_page !== ''"><strong>• Pagina Wikipedia autore: </strong><a :href="espandiModalInfo.author_wiki_page" target="_blank"><% espandiModalInfo.author_wiki_page %></a><br></p>
             <p style="display:inline" v-if="espandiModalInfo.author_wiki_info !== ''"><strong>• Biografia autore: </strong><% espandiModalInfo.author_wiki_info %><br></p>
             <div v-if="espandiModalInfo.author_other_works[0] !== ''"><p style="display:inline"><strong>• Altre opere: </strong></p><br><ul><li v-for="work in espandiModalInfo.author_other_works"><% work %></li></ul></div>
+            <div v-if="espandiModalInfo.entities !== ''"><p style="display:inline"><strong>• Entità trovate nel campo descrizione: </strong></p><br><ul><li v-for="e in espandiModalInfo.entities"><a :href="e.uri" target="_blank"><% e.title %></a><p style="display:inline" v-if="e.categories !== ''"><strong> (<% e.categories %>)</strong></p>: <% e.abstract %><br></li></ul></div>
 		</b-modal>
 	</div>
 
