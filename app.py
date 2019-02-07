@@ -36,7 +36,7 @@ def do_import():
 
 @app.route('/_import')
 def _import():
-    return Response(stream_with_context(import_records.do_import(50)), mimetype='text/event-stream')
+    return Response(stream_with_context(import_records.do_import(750)), mimetype='text/event-stream')
 
 
 @app.route('/expand')
@@ -93,19 +93,17 @@ def get_expanded_record():
         return jsonify(data)
 
 
-@app.route('/api/v1/top_entities', methods=['GET'])
-def get_top_entities():
-    top_entities = db.query_db('SELECT en.title, count(*) as count\
-                                FROM  entity_for_record as e, entities as en\
-                                WHERE e.entity_id = en.entity_id GROUP BY en.title ORDER BY count DESC LIMIT 5')
-    result = {}
-    for e in top_entities:
-        result[e['title']] = e['count']
-    return jsonify(result)
+@app.route('/api/v1/entities', methods=['GET'])
+def get_entities():
+    entities = db.query_db('SELECT * FROM entities')
+    data = []
+    for e in entities:
+        data.append(e['title'])
+    return jsonify(sorted(data))
 
 
-@app.route('/api/v1/top_categories', methods=['GET'])
-def get_top_categories():
+@app.route('/api/v1/categories', methods=['GET'])
+def get_categories():
     all_categories = db.query_db('SELECT e.id AS record_id, en.categories AS categories\
                                   FROM expanded_records AS e, entities AS en, entity_for_record AS ent\
                                   WHERE e.id = ent.record_id and ent.entity_id = en.entity_id\
@@ -116,10 +114,73 @@ def get_top_categories():
         for ca in cat['categories'].split(', '):
             if (id not in data or ca not in data[id]) and ca != '':
                 data.setdefault(id, []).append(ca)
-    c = Counter(x for xs in data.values() for x in set(xs)).most_common(5)
+    return jsonify(sorted(list(set(sum(data.values(), [])))))
+
+
+@app.route('/api/v1/top_entities', methods=['GET'])
+def get_top_entities():
+    limit = int(request.args.get('limit'))
+    top_entities = db.query_db('SELECT en.title, count(*) as count\
+                                FROM  entity_for_record as e, entities as en\
+                                WHERE e.entity_id = en.entity_id GROUP BY en.title ORDER BY count DESC LIMIT {}'.format(limit))
+    result = {}
+    for e in top_entities:
+
+        # Unisci ad esempio 'Firenze' con 'Provincia di Firenze'
+        if e['title'].startswith('Provincia di '):
+            city = e['title'].split('Provincia di ')[1]
+            if city in result:
+                result[city] += e['count']
+            else:
+                result[city] = e['count']
+        else:
+            if e['title'] in result:
+                result[e['title']] += e['count']
+            else:
+                result[e['title']] = e['count']
+    return jsonify(result)
+
+
+@app.route('/api/v1/top_categories', methods=['GET'])
+def get_top_categories():
+    limit = int(request.args.get('limit'))
+    all_categories = db.query_db('SELECT e.id AS record_id, en.categories AS categories\
+                                  FROM expanded_records AS e, entities AS en, entity_for_record AS ent\
+                                  WHERE e.id = ent.record_id and ent.entity_id = en.entity_id\
+                                  ORDER BY e.id')
+    data = {}
+    for cat in all_categories:
+        id = cat['record_id']
+        for ca in cat['categories'].split(', '):
+            if (id not in data or ca not in data[id]) and ca != '':
+                data.setdefault(id, []).append(ca)
+    c = Counter(x for xs in data.values() for x in set(xs)).most_common(limit)
     result = {}
     for ca in c:
-        result[ca[0]] = ca[1]
+        if ca[0].startswith('Provincia di '):
+            city = ca[0].split('Provincia di ')[1]
+            if city in result:
+                result[city] += ca[1]
+            else:
+                result[city] = ca[1]
+        else:
+            if ca[0] in result:
+                result[ca[0]] += ca[1]
+            else:
+                result[ca[0]] = ca[1]
+    return jsonify(result)
+
+
+@app.route('/api/v1/get_entities_for_record', methods=['GET'])
+def get_entities_for_record():
+    entities = db.query_db('SELECT e.id AS record_id, en.title\
+                            FROM expanded_records AS e, entities AS en, entity_for_record AS ent\
+                            WHERE e.id = ent.record_id and ent.entity_id = en.entity_id\
+                            ORDER BY e.id')
+    result = {}
+    for e in entities:
+        if e['title'] != '':
+            result.setdefault(e['record_id'], []).append(e['title'])
     return jsonify(result)
 
 

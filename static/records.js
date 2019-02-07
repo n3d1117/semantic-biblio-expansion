@@ -33,7 +33,7 @@ new Vue({
 			this.$root.$emit('bv::show::modal', 'altroModalInfo', button);
 		},
 		espandi(item, index, button) {
-			loadingButtonIndex = index
+			loadingButtonIndex = index;
 			axios.get(`/api/v1/get_expanded_record?id=${item.id}`).then((response) => {
 				this.espandiModalInfo.title = 'Risultato espansione';
 				this.espandiModalInfo.viaf_id = response.data.viaf_id;
