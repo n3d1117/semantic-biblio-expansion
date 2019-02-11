@@ -12,7 +12,7 @@
 		let label = data[1];
         $('.progress-bar').css('width', progress+'%').attr('aria-valuenow', progress);
         $('.progress-bar-label').text(progress.split('.')[0]+'%');
-		if (label == 'done') {
+		if (label === 'done') {
 			source.close();
 			$('.under-progress-label').html('Done! <a href="../records">See records</a>');
         } else {

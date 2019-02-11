@@ -6,8 +6,6 @@ from collections import Counter
 
 app = Flask(__name__)
 
-# TODO: navbar
-
 
 @app.teardown_appcontext
 def close_connection(_):
@@ -24,9 +22,9 @@ def records():
     return render_template('records.html')
 
 
-@app.route('/categories')
-def categories():
-    return render_template('categories.html')
+@app.route('/map')
+def map_page():
+    return render_template('map.html')
 
 
 @app.route('/import')
@@ -36,7 +34,8 @@ def do_import():
 
 @app.route('/_import')
 def _import():
-    return Response(stream_with_context(import_records.do_import(750)), mimetype='text/event-stream')
+    init_db()
+    return Response(stream_with_context(import_records.do_import(1000)), mimetype='text/event-stream')
 
 
 @app.route('/expand')
@@ -59,7 +58,7 @@ def get_records():
 def get_expanded_record():
     id = request.args.get('id')
     records = db.query_db("SELECT DISTINCT e.id AS record_id, e.viaf_id, e.author_other_works, e.author_wiki_page, e.author_wiki_info,\
-                            en.entity_id, en.title, en.abstract, en.categories, en.uri\
+                            en.entity_id, en.title, en.abstract, en.coords, en.image_url, en.uri\
                             FROM expanded_records as e, entities as en, entity_for_record as ent\
                             WHERE e.id = ent.record_id and en.entity_id = ent.entity_id and e.id = {}".format(id))
 
@@ -88,87 +87,10 @@ def get_expanded_record():
         }
         for r in records:
             data['entities'].append({
-                'entity_id': r['entity_id'], 'title': r['title'], 'abstract': r['abstract'], 'categories': r['categories'], 'uri': r['uri']
+                'entity_id': r['entity_id'], 'title': r['title'], 'abstract': r['abstract'], 'image': r['image_url'],
+                'coords': r['coords'], 'uri': r['uri']
             })
         return jsonify(data)
-
-
-@app.route('/api/v1/entities', methods=['GET'])
-def get_entities():
-    entities = db.query_db('SELECT * FROM entities')
-    data = []
-    for e in entities:
-        data.append(e['title'])
-    return jsonify(sorted(data))
-
-
-@app.route('/api/v1/categories', methods=['GET'])
-def get_categories():
-    all_categories = db.query_db('SELECT e.id AS record_id, en.categories AS categories\
-                                  FROM expanded_records AS e, entities AS en, entity_for_record AS ent\
-                                  WHERE e.id = ent.record_id and ent.entity_id = en.entity_id\
-                                  ORDER BY e.id')
-    data = {}
-    for cat in all_categories:
-        id = cat['record_id']
-        for ca in cat['categories'].split(', '):
-            if (id not in data or ca not in data[id]) and ca != '':
-                data.setdefault(id, []).append(ca)
-    return jsonify(sorted(list(set(sum(data.values(), [])))))
-
-
-@app.route('/api/v1/top_entities', methods=['GET'])
-def get_top_entities():
-    limit = int(request.args.get('limit'))
-    top_entities = db.query_db('SELECT en.title, count(*) as count\
-                                FROM  entity_for_record as e, entities as en\
-                                WHERE e.entity_id = en.entity_id GROUP BY en.title ORDER BY count DESC LIMIT {}'.format(limit))
-    result = {}
-    for e in top_entities:
-
-        # Unisci ad esempio 'Firenze' con 'Provincia di Firenze'
-        if e['title'].startswith('Provincia di '):
-            city = e['title'].split('Provincia di ')[1]
-            if city in result:
-                result[city] += e['count']
-            else:
-                result[city] = e['count']
-        else:
-            if e['title'] in result:
-                result[e['title']] += e['count']
-            else:
-                result[e['title']] = e['count']
-    return jsonify(result)
-
-
-@app.route('/api/v1/top_categories', methods=['GET'])
-def get_top_categories():
-    limit = int(request.args.get('limit'))
-    all_categories = db.query_db('SELECT e.id AS record_id, en.categories AS categories\
-                                  FROM expanded_records AS e, entities AS en, entity_for_record AS ent\
-                                  WHERE e.id = ent.record_id and ent.entity_id = en.entity_id\
-                                  ORDER BY e.id')
-    data = {}
-    for cat in all_categories:
-        id = cat['record_id']
-        for ca in cat['categories'].split(', '):
-            if (id not in data or ca not in data[id]) and ca != '':
-                data.setdefault(id, []).append(ca)
-    c = Counter(x for xs in data.values() for x in set(xs)).most_common(limit)
-    result = {}
-    for ca in c:
-        if ca[0].startswith('Provincia di '):
-            city = ca[0].split('Provincia di ')[1]
-            if city in result:
-                result[city] += ca[1]
-            else:
-                result[city] = ca[1]
-        else:
-            if ca[0] in result:
-                result[ca[0]] += ca[1]
-            else:
-                result[ca[0]] = ca[1]
-    return jsonify(result)
 
 
 @app.route('/api/v1/get_entities_for_record', methods=['GET'])
@@ -182,6 +104,34 @@ def get_entities_for_record():
         if e['title'] != '':
             result.setdefault(e['record_id'], []).append(e['title'])
     return jsonify(result)
+
+
+@app.route('/api/v1/places', methods=['GET'])
+def get_places():
+    places = db.query_db('SELECT * FROM places')
+    return jsonify(places)
+
+
+@app.route('/api/v1/records_for_place', methods=['GET'])
+def get_records_for_place():
+    place_id = request.args.get('place_id')
+    places = db.query_db('SELECT r.id, r.title FROM records r, places p WHERE r.published_in = p.id and p.id = {}'.format(place_id))
+    return jsonify(places)
+
+
+@app.route('/api/v1/geo_entities_for_record', methods=['GET'])
+def get_geo_entities_for_record():
+    record_id = request.args.get('record_id')
+    geo_entities = db.query_db('SELECT en.entity_id, en.title, en.coords FROM entity_for_record e, entities en\
+                                WHERE e.entity_id = en.entity_id AND en.coords != "" AND e.record_id = {}'.format(record_id))
+    return jsonify(geo_entities)
+
+
+@app.route('/api/v1/entity', methods=['GET'])
+def get_entity():
+    entity_id = request.args.get('entity_id')
+    entity = db.query_db('SELECT * FROM entities WHERE entity_id = {}'.format(entity_id))
+    return jsonify(entity)
 
 
 @app.route('/init_db')
