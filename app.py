@@ -2,7 +2,6 @@ from flask import Flask, jsonify, render_template, send_file, Response, stream_w
 from database import db
 import import_records
 import expand_records
-from collections import Counter
 
 app = Flask(__name__)
 
@@ -109,14 +108,16 @@ def get_entities_for_record():
 @app.route('/api/v1/places', methods=['GET'])
 def get_places():
     places = db.query_db('SELECT * FROM places')
-    return jsonify(places)
-
-
-@app.route('/api/v1/records_for_place', methods=['GET'])
-def get_records_for_place():
-    place_id = request.args.get('place_id')
-    places = db.query_db('SELECT r.id, r.title FROM records r, places p WHERE r.published_in = p.id and p.id = {}'.format(place_id))
-    return jsonify(places)
+    data = []
+    for p in places:
+        records = db.query_db('SELECT r.id AS record_id, r.title FROM records r, places p WHERE r.published_in = p.id AND p.id={}'.format(p['id']))
+        data.append({
+            'id': p['id'],
+            'name': p['name'],
+            'coords': p['coords'],
+            'records': records
+        })
+    return jsonify(data)
 
 
 @app.route('/api/v1/geo_entities_for_record', methods=['GET'])

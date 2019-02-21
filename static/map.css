@@ -1,19 +1,26 @@
-html, body {
-    height: 100%;
+body {
     margin: 0;
-    padding: 0;
+    height: calc(100% - 56px);
 }
 
-#map {
+html, #map {
     height: 100%;
+    overflow: hidden;
+}
+
+#search {
+    width: 400px;
+}
+
+.marker-label {
+    position: absolute;
+    font-size: 13px;
 }
 
 .landmark {
     width: 250px;
     padding: 7px 0 0 0;
-    background: rgba(247, 247, 247, 0.95);
-    border-radius: 5px;
-    box-shadow: 10px 10px 50px rgba(0, 0, 0, 0.29);
+    border-radius: 12px;
     font-family: Helvetica, Arial, sans-serif;
     -webkit-transform-origin: 0 10px;
     transform-origin: 0 10px;
@@ -22,11 +29,9 @@ html, body {
 .landmark h1 {
     margin-top: 0;
     padding: 5px 15px;
-    background: #2aaef5;
-    color: rgba(255, 255, 255, 0.9);
     font-size: 16px;
-    font-weight: 300;
-    /*margin-bottom: 0;*/
+    margin-bottom: 0;
+    font-weight: bold;
 }
 
 .landmark section {
@@ -56,39 +61,10 @@ html, body {
     background-color: #e6e6e6;
 }
 
-.landmark:after {
-    content: "";
-    position: absolute;
-    top: 7px;
-    left: -13px;
-    width: 0;
-    height: 0;
-    margin-bottom: -13px;
-    border-right: 13px solid #2aaef5;
-    border-top: 13px solid rgba(0, 0, 0, 0);
-    border-bottom: 13px solid rgba(0, 0, 0, 0);
+.leaflet-popup-content {
+    margin: 0;
 }
 
-@-webkit-keyframes scale-and-fadein {
-    0% {
-        -webkit-transform: scale(0.5);
-        opacity: 0.1;
-    }
-
-    100% {
-        -webkit-transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes scale-and-fadein {
-    0% {
-        transform: scale(0.5);
-        opacity: 0.1;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: rgba(247, 247, 247, 0.95);
 }

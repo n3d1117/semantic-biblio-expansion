@@ -4,13 +4,39 @@
 <head>
     <meta charset="utf-8">
     <title>Map</title>
-    <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
+    <link rel="stylesheet" href="//unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+          integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+          crossorigin=""/>
+    <script src="//unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+            integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+            crossorigin=""></script>
+    <script src="{{ url_for('static', filename='leaflet.curve.js') }}"></script>
+    <script src="{{ url_for('static', filename='layer.grayscale.js') }}"></script>
     <script src="//unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="//unpkg.com/vue/dist/vue.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='map.css') }}">
 </head>
 
 <body>
+
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">semantic-biblio-expansion</a>
+
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item"><a class="nav-link" href="/records">Tutti i record</a></li>
+                <li class="nav-item active"><a class="nav-link" href="/map">Mappa <span class="sr-only">(current)</span></a></li>
+            </ul>
+            <form class="form-inline">
+                <input id ="search" class="form-control mr-sm-2" type="search" placeholder="Ricerca luogo, autore, soggetti..." aria-label="Search">
+                <button class="btn btn-info my-2 my-sm-0" type="submit">Cerca</button>
+            </form>
+        </div>
+    </nav>
+
     <div id="map"></div>
+
     <script src="{{ url_for('static', filename='map.js') }}"></script>
 </body>
 

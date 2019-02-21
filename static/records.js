@@ -53,8 +53,8 @@ new Vue({
 		},
 		filterUpdate: _.debounce(function (value) {
 			this.filter = value;
-		}, 300),
-		filterHandler(item) {
+		}, 250),
+		filterHandler(item, _) {
 			if (this.filter) {
 				let filter = this.filter.toLowerCase();
 				return item.title.toLowerCase().includes(filter) ||
@@ -64,10 +64,6 @@ new Vue({
 			} else {
 				return true
 			}
-		},
-		onFiltered(filteredItems) {
-			this.totalRows = filteredItems.length;
-			this.currentPage = 1;
 		}
 	},
 	mounted() {
