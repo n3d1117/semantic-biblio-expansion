@@ -8,8 +8,12 @@ html, #map {
     overflow: hidden;
 }
 
+img {
+    object-fit: cover;
+}
+
 #search {
-    width: 400px;
+    width: 500px;
 }
 
 .marker-label {

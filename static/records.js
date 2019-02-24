@@ -64,6 +64,10 @@ new Vue({
 			} else {
 				return true
 			}
+		},
+		onFiltered(filteredItems) {
+			this.totalRows = filteredItems.length;
+			this.currentPage = 1;
 		}
 	},
 	mounted() {

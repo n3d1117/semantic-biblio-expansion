@@ -27,7 +27,7 @@
 			<b-form-input type="text" v-model="filter" v-on:input="filterUpdate" placeholder="Ricerca per titolo, soggetti, autore, descrizione..."></b-form-input>
 		</b-input-group>
 
-		<b-table hover striped bordered outlined :items="records" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filter" :filter-function="filterHandler" caption-top>
+		<b-table hover striped bordered outlined :items="records" :fields="fields" :current-page="currentPage" :per-page="perPage" :filter="filter" :filter-function="filterHandler" @filtered="onFiltered" caption-top>
 			<template slot="more" slot-scope="data">
 				<b-button class="mb-2" variant="success" size="sm" @click.stop="showAltro(data.item, $event.target)">Altro</b-button>
 				<b-button v-if="loadingButtonIndex === data.index" variant="primary" size="sm" disabled><i class='fa fa-spinner fa-spin'></i></b-button>

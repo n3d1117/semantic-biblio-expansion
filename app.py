@@ -105,34 +105,85 @@ def get_entities_for_record():
     return jsonify(result)
 
 
-@app.route('/api/v1/places', methods=['GET'])
-def get_places():
-    places = db.query_db('SELECT * FROM places')
-    data = []
+@app.route('/api/v1/search', methods=['GET'])
+def search():
+    query = request.args.get('q')
+
+    response = []
+
+    # search query in entities
+    # entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
+    # for e in entities:
+    #     if e['coords'] != '':
+    #         response.append({
+    #             'type': 'entity',
+    #             'entity_id': e['entity_id'],
+    #             'coords': e['coords'],
+    #             'title': e['title'],
+    #             'abstract': e['abstract'],
+    #             'image_url': e['image_url'],
+    #             'uri': e['uri']
+    #         })
+
+    # search query in places
+    places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))
     for p in places:
         records = db.query_db('SELECT r.id AS record_id, r.title FROM records r, places p WHERE r.published_in = p.id AND p.id={}'.format(p['id']))
-        data.append({
-            'id': p['id'],
-            'name': p['name'],
-            'coords': p['coords'],
-            'records': records
-        })
-    return jsonify(data)
+        if len(records) > 0:
+            response.append({
+                'type': 'place',
+                'place_id': p['id'],
+                'coords': p['coords'],
+                'name': p['name'],
+                'records': records
+            })
+
+    # search query in records
+    records = db.query_db('SELECT id AS record_id, title, published_in from records WHERE title LIKE "%{q}%" OR subject LIKE "%{q}%" OR description LIKE "%{q}%" OR creator LIKE "%{q}%" OR contributor LIKE "%{q}%" OR publisher LIKE "%{q}%"'.format(q=query))
+
+    records_places = []
+    for r in records:
+        if r['published_in'] != '' and r['published_in'] not in records_places:
+            records_places.append(r['published_in'])
+
+    for place in records_places:
+
+        query_place = db.query_db('SELECT places.name, places.coords from places WHERE places.id={}'.format(place))
+
+        p_records = [r for r in records if r['published_in'] == place]
+
+        e_records = []
+        for r in p_records:
+            e_records.append({
+                'record_id': r['record_id'],
+                'title': r['title']
+            })
+
+        if len(query_place) > 0 and len(e_records) > 0:
+
+            e = [r for r in response if 'place_id' in r and r['place_id'] == place]
+            if len(e) > 0:
+                # if place exists, append and remove duplicates
+                e[0]['records'] = [dict(t) for t in {tuple(d.items()) for d in (e[0]['records'] + e_records)}]
+            else:
+                # or else just append
+                response.append({
+                    'type': 'place',
+                    'place_id': place,
+                    'coords': query_place[0]['coords'],
+                    'name': query_place[0]['name'],
+                    'records': e_records
+                })
+
+    return jsonify(response)
 
 
 @app.route('/api/v1/geo_entities_for_record', methods=['GET'])
 def get_geo_entities_for_record():
     record_id = request.args.get('record_id')
-    geo_entities = db.query_db('SELECT en.entity_id, en.title, en.coords FROM entity_for_record e, entities en\
+    geo_entities = db.query_db('SELECT en.* FROM entity_for_record e, entities en\
                                 WHERE e.entity_id = en.entity_id AND en.coords != "" AND e.record_id = {}'.format(record_id))
     return jsonify(geo_entities)
-
-
-@app.route('/api/v1/entity', methods=['GET'])
-def get_entity():
-    entity_id = request.args.get('entity_id')
-    entity = db.query_db('SELECT * FROM entities WHERE entity_id = {}'.format(entity_id))
-    return jsonify(entity)
 
 
 @app.route('/init_db')
