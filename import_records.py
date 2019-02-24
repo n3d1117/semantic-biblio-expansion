@@ -96,6 +96,8 @@ def do_import(max_num):
                     place_id = get_page_id(luogo)
                     if place_id is not None and not any(x[0] == place_id for x in places):
                         places.append((place_id, luogo, coords_stringified))
+                else:
+                    print('could not find coordinates for ' + luogo)
 
             d = record2dict(record, place_id)
             array.append((d['title'].strip(), d['subject'], d['creator'], d['contributor'], d['date'], d['description'],

@@ -1,204 +1,210 @@
-mapkit.init({
-    authorizationCallback: function(done) {
-        done('***');
-    }, language: "it-IT"
-});
 
+let osmUrl = 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
+    osmAttrib = '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    osm = L.tileLayer.grayscale(osmUrl, {  attribution: osmAttrib }),
+    toscana = [43.4148394, 11.2210621],
+    layers = [],
+    additionalLayers = [];
 
-var firenze = new mapkit.CoordinateRegion(
-    new mapkit.Coordinate(43.7792500, 11.2462600),
-    new mapkit.CoordinateSpan(1.8, 0.005)
-);
+let map = L.map('map', { fadeAnimation: false }).setView(toscana, 9).addLayer(osm);
 
-var map = new mapkit.Map("map");
-//map.colorScheme = mapkit.Map.ColorSchemes.Dark;
-map.showsPointsOfInterest = false;
-map.region = firenze;
+let form = document.getElementById("search-form");
+function handleForm(event) {
+    event.preventDefault();
+}
+form.addEventListener('submit', handleForm);
 
-map.addEventListener("zoom-end", function () {
-    map.annotations.forEach(function(a) {
-        a.titleVisibility = map.region.span.latitudeDelta < 1 ? mapkit.FeatureVisibility.Visible : mapkit.FeatureVisibility.Hidden;
-    })
-});
-
-var CALLOUT_OFFSET_1 = new DOMPoint(-148, -32);
-var landmarkAnnotationCallout = {
-    calloutElementForAnnotation: function (annotation) {
-        return calloutForLandmarkAnnotation(annotation);
-    },
-
-    calloutAnchorOffsetForAnnotation: function (annotation, element) {
-        return CALLOUT_OFFSET_1;
-    },
-
-    calloutAppearanceAnimationForAnnotation: function (annotation) {
-        return "scale-and-fadein .4s 0 1 normal cubic-bezier(0.4, 0, 0, 1.5)";
-    }
+L.Map.prototype.setViewOffset = function (latlng, offset) {
+    var targetPoint = this.project(latlng, this.getZoom()).subtract(offset),
+        targetLatLng = this.unproject(targetPoint, this.getZoom());
+    return this.panTo(targetLatLng, this.getZoom());
 };
 
+function searchPlaces() {
 
-axios.get('/api/v1/places').then((response) => {
+    clearAllLayers();
 
-    annotations = response.data.map(function(value) {
-        lat = Number(value.coords.split(',')[0]);
-        long = Number(value.coords.split(',')[1]);
-        a = new mapkit.MarkerAnnotation(new mapkit.Coordinate(lat, long), { color: "blue", callout: landmarkAnnotationCallout, title: value.name, data: { id: value.id, lat: lat, long: long } });
-        a.titleVisibility = mapkit.FeatureVisibility.Hidden;
-        return a;
-    });
-    map.addAnnotations(annotations);
-}).catch(error => {
-    console.log(error);
-});
+    let query = document.getElementById("search").value;
 
-// Landmark annotation custom callout
-function calloutForLandmarkAnnotation(annotation) {
-    var div = document.createElement("div");
-    div.className = "landmark";
+    if (query === '') { return false }
 
-    var title = div.appendChild(document.createElement("h1"));
-    title.textContent = annotation.title;
+    let arrayOfMarkers = [];
 
-    axios.get(`/api/v1/records_for_place?place_id=${annotation.data.id}`).then((response) => {
+    axios.get(`/api/v1/search?q=${query}`).then((response) => {
+        response.data.map(function(value) {
 
-        var section = div.appendChild(document.createElement("section"));
+            let lat = Number(value.coords.split(',')[0]);
+            let long = Number(value.coords.split(',')[1]);
 
-        response.data.sort((a, b) => a.title.localeCompare(b.title)).forEach(function(value) {
-            var phone = section.appendChild(document.createElement("p"));
-            phone.className = "phone";
-            phone.textContent = value.title;
-            phone.onclick = function () {
-                axios.get(`/api/v1/geo_entities_for_record?record_id=${value.id}`).then((response) => {
-                    var geo_entities = response.data.filter(function removeRedundantPlace(entity) {
-                        return entity.title !== annotation.title && entity.title !== 'Toscana' && entity.title !== 'Provincia di ' + annotation.title; // todo better
-                    });
+/*            if (value.type === 'entity') {
 
-                    console.log(geo_entities);
+                let marker = generateMarkerForEntity(lat, long, value);
+                if (!map.hasLayer(marker)) { marker.addTo(map); }
+                layers.push(marker);
 
-                    var polylines = [];
+                arrayOfMarkers.push([marker.getLatLng().lat, marker.getLatLng().lng]);
 
-                    var annotations = geo_entities.map(function (value) {
-                        lat = Number(value.coords.split(',')[0]);
-                        long = Number(value.coords.split(',')[1]);
-                        a = new mapkit.MarkerAnnotation(new mapkit.Coordinate(lat, long), {
-                            color: "red",
-                            callout: entityAnnotationCallout,
-                            title: value.title,
-                            data: { id: value.entity_id }
-                        });
-
-                        var c1 = new mapkit.Coordinate(annotation.data.lat, annotation.data.long);
-                        var c2 = new mapkit.Coordinate(lat, long);
-                        polylines.push(bezierPolyline(c1, c2));
-
-                        return a;
-                    });
-
-                    map.removeOverlays(map.overlays);
-
-                    var old_annotations = map.annotations.filter(function (value) {
-                        return value.color === "red";
-                    });
-
-                    map.removeAnnotations(old_annotations);
-
-                    map.showItems(annotations.concat(polylines), {
-                        animate: true,
-                        padding: new mapkit.Padding(150, 250, 150, 250)
-                    });
-
-                }).catch(error => {
-                    console.log(error);
-                });
-            };
+            }*/
+            if (value.type === 'place') {
+                let marker = generateMarkerForPlace(lat, long, value);
+                layers.push(marker);
+                arrayOfMarkers.push([lat, long]);
+            }
         });
+
+        let bounds = new L.LatLngBounds(arrayOfMarkers);
+        map.fitBounds(bounds);
 
     }).catch(error => {
         console.log(error);
     });
-
-    return div;
 }
 
-var CALLOUT_OFFSET_2 = new DOMPoint(-148, -32);
-var entityAnnotationCallout = {
-    calloutElementForAnnotation: function (annotation) {
-        return calloutForEntityAnnotation(annotation);
-    },
+function generateMarkerForPlace(lat, long, place) {
+    let marker = L.marker([lat, long]);
+    marker.data = {id: place.id, name: place.name, lat: lat, long: long};
+    marker.bindPopup();
+    marker.bindTooltip(place.name, {className: "marker-label", offset: [0, 0]});
+    marker.on('click', clickZoom);
 
-    calloutAnchorOffsetForAnnotation: function (annotation, element) {
-        return CALLOUT_OFFSET_2;
-    },
-
-    calloutAppearanceAnimationForAnnotation: function (annotation) {
-        return "scale-and-fadein .4s 0 1 normal cubic-bezier(0.4, 0, 0, 1.5)";
-    }
-};
-
-function calloutForEntityAnnotation(annotation) {
-    var div = document.createElement("div");
+    let div = document.createElement("div");
     div.className = "landmark";
+    let title = div.appendChild(document.createElement("h1"));
+    title.textContent = place.name;
+    let section = div.appendChild(document.createElement("section"));
 
-    var title = div.appendChild(document.createElement("h1"));
-    title.textContent = annotation.title;
+    place.records.sort((a, b) => a.title.localeCompare(b.title)).forEach(function(record) {
+        axios.get(`/api/v1/geo_entities_for_record?record_id=${record.record_id}`).then((response) => {
+            let geo_entities = response.data.filter(function removeRedundantEntity(entity) {
+                // todo better
+                return entity.title !== marker.data.name && entity.title !== 'Toscana' && entity.title !== 'Provincia di ' + marker.data.name;
+            });
 
-    axios.get(`/api/v1/entity?entity_id=${annotation.data.id}`).then((response) => {
-        value = response.data[0];
+            if (geo_entities.length > 0) {
 
-        if (value.image_url != '') {
-            var img = div.appendChild(document.createElement("img"));
-            img.setAttribute("src", value.image_url);
-            img.setAttribute("width", "250");
-            img.setAttribute("height", "100");
-        }
+                if (!map.hasLayer(marker)) { marker.addTo(map); }
 
-        var section = div.appendChild(document.createElement("section"));
+                let p = section.appendChild(document.createElement("p"));
+                p.textContent = record.title;
+                p.onclick = function () {
 
-        var coords = section.appendChild(document.createElement("p"));
-        coords.textContent = value.coords;
+                    // Rimuovi sognaposto entità e curve dalla mappa
+                    additionalLayers.map(function (c) { c.remove(); });
 
-        var abstract = section.appendChild(document.createElement("p"));
-        abstract.textContent = value.abstract;
-
-        var uri = section.appendChild(document.createElement("p"));
-        var a = uri.appendChild(document.createElement("a"));
-        a.href = value.uri;
-        a.target = "_blank";
-        a.textContent = value.uri;
+                    recordClicked(lat, long, geo_entities);
+                }
+            }
+        }).catch(error => {
+            console.log(error);
+        });
     });
 
-    return div;
+    marker.setPopupContent(div);
+    return marker;
 }
 
-function getBezierXY(t, sx, sy, cpx, cpy, ex, ey) {
-    return {
-        x: Math.pow(1 - t, 2) * sx + 2 * t * (1 - t) * cpx + t * t * ex,
-        y: Math.pow(1 - t, 2) * sy + 2 * t * (1 - t) * cpy + t * t * ey
-    };
+function generateMarkerForEntity(lat, long, entity) {
+    let marker = L.marker([lat, long], { icon: greenIcon });
+    marker.bindPopup();
+    marker.bindTooltip(entity.title, {
+        direction: "right",
+        className: "marker-label",
+        offset: [15, -20]
+    });
+    marker.on('click', clickZoom);
+    let div = document.createElement("div");
+    div.className = "landmark";
+    let title = div.appendChild(document.createElement("h1"));
+    title.textContent = entity.title;
+    if (entity.image_url !== '') {
+        let img = div.appendChild(document.createElement("img"));
+        img.setAttribute("src", entity.image_url);
+        img.setAttribute("width", "250");
+        img.setAttribute("height", "100");
+    }
+    let section = div.appendChild(document.createElement("section"));
+    let coords = section.appendChild(document.createElement("p"));
+    coords.textContent = entity.coords;
+    let abstract = section.appendChild(document.createElement("p"));
+    abstract.textContent = entity.abstract;
+    let uri = section.appendChild(document.createElement("p"));
+    let a = uri.appendChild(document.createElement("a"));
+    a.href = entity.uri;
+    a.target = "_blank";
+    a.textContent = entity.uri;
+    marker.setPopupContent(div);
+    return marker;
 }
 
-let style = new mapkit.Style({
-    lineWidth: 1,
-    lineJoin: "round",
-    strokeColor: "#000000"
+function recordClicked(place_lat, place_long, geo_entities) {
+    geo_entities.map(function (entity) {
+        let lat1 = Number(entity.coords.split(',')[0]);
+        let long1 = Number(entity.coords.split(',')[1]);
+
+        let marker = generateMarkerForEntity(lat1, long1, entity);
+        if (!map.hasLayer(marker)) {
+            marker.addTo(map);
+        }
+        additionalLayers.push(marker);
+
+        let curve = bezierCurve([place_lat, place_long], [lat1, long1]);
+        if (!map.hasLayer(curve)) {
+            curve.addTo(map);
+        }
+        additionalLayers.push(curve);
+    });
+}
+
+function clearAllLayers() {
+    try {
+        layers.map(function (c) {
+            c.remove();
+        });
+        additionalLayers.map(function (c) {
+            c.remove();
+        });
+    } catch (e) {
+        console.log(e.message);
+    }
+}
+
+let greenIcon = new L.Icon({
+    iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
 });
 
-function bezierPolyline(from, to) {
-    var middle = {
-        x: (from.latitude + to.latitude) / 2,
-        y: (from.longitude + to.longitude) / 2,
-    };
-    var cp = new mapkit.Coordinate(middle.x - 0.06, middle.y - 0.06); // control point todo better
+function clickZoom(e) {
+    var offset = map.getZoom() <= 9 ? 150 : 130;
+    map.setViewOffset(e.target.getLatLng(), [0, offset]);
+}
 
-    var i;
-    var points = [];
-    let precision = 100;
-    for (i = 0; i < precision + 1; i++) {
-        let p = getBezierXY(i / precision, from.latitude, from.longitude, cp.latitude, cp.longitude, to.latitude, to.longitude);
-        points.push([p.x, p.y]);
-    }
-    var coords = points.map(function (point) {
-        return new mapkit.Coordinate(point[0], point[1]);
-    });
-    return new mapkit.PolylineOverlay(coords, { style: style });
+/*
+map.on('popupopen', function(marker) {
+    try {
+        marker.closeTooltip();
+        console.log(marker.popup._source.data);
+    } catch(e) { }
+});
+*/
+
+// quadratic bezier curve
+// https://gist.github.com/ryancatalani/6091e50bf756088bf9bf5de2017b32e6
+
+function bezierCurve(from, to) {
+    let offsetX = to[1] - from[1],
+        offsetY = to[0] - from[0];
+    let r = Math.sqrt(Math.pow(offsetX, 2) + Math.pow(offsetY, 2)),
+        theta = Math.atan2(offsetY, offsetX);
+    let thetaOffset = (3.14 / 10);
+    let r2 = (r / 2) / (Math.cos(thetaOffset)),
+        theta2 = theta + thetaOffset;
+    let midpointX = (r2 * Math.cos(theta2)) + from[1],
+        midpointY = (r2 * Math.sin(theta2)) + from[0];
+    let midpointLatLng = [midpointY, midpointX];
+    let pathOptions = { color: 'blue', animate: 400 };
+    return L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
 }

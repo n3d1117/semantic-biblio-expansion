@@ -1,12 +1,13 @@
 from database import db as database
-import requests
 import wikipedia
 from lxml import etree
+from import_records import get_coordinates
+import requests
 
 
 def dandelion_extract_entities(text):
     token = 'xxx'
-    response = requests.get('https://api.dandelion.eu/datatxt/nex/v1/?lang=it&min_confidence=0.7&token={}&text={}&include=abstract,categories'.format(token, text))
+    response = requests.get('https://api.dandelion.eu/datatxt/nex/v1/?lang=it&min_confidence=0.7&token={}&text={}&include=abstract,image'.format(token, text))
     return response.json()
 
 
@@ -60,14 +61,34 @@ def get_opere(viaf_id):
     return opere
 
 
+def get_birth_location_coords(person):
+    wikipedia.set_lang('it')
+    url = 'https://query.wikidata.org/sparql'
+    query = """
+    SELECT DISTINCT ?item ?itemLabel ?birthLocation ?birthLocationLabel WHERE {
+        ?item rdfs:label "%s"@it; wdt:P19 ?birthLocation
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "it". }
+    }
+    """ % person
+    r = requests.get(url, params={'format': 'json', 'query': query})
+    data = r.json()
+    if 'results' in data and 'bindings' in data['results']:
+        for item in data['results']['bindings']:
+            return wikipedia.page(item['birthLocationLabel']['value']).coordinates
+    else:
+        return None
+
+
 if __name__ == '__main__':
     # print(get_opere('49239963'))
     # print(get_author_wikipedia_info({'creator': 'giuseppe maschili'}))
     # print(get_author_viaf_id({'creator': 'Pisa <Provincia>'}))
     # get_author_wikipedia_page('51736727')
-
-    j = dandelion_extract_entities("giuseppe")
-    print('categories' in j['annotations'][0])
+    # j = dandelion_extract_entities("giuseppe")
+    # wikipedia.set_lang('it')
+    # print(wikipedia.page('Valdinievole').links)
+    # print(get_birth_location_coords('Società Italiana Ernesto Breda per Costruzioni Meccaniche'))
+    print()
 
 
 def do_expand():
@@ -94,7 +115,7 @@ def do_expand():
     bit = 100 / len(json)
 
     query = "INSERT INTO expanded_records(id, viaf_id, author_other_works, author_wiki_page, author_wiki_info) VALUES(?, ?, ?, ?, ?)"
-    query2 = "INSERT INTO entities(entity_id, title, abstract, categories, uri) VALUES(?, ?, ?, ?, ?)"
+    query2 = "INSERT INTO entities(entity_id, title, abstract, image_url, coords, uri) VALUES(?, ?, ?, ?, ?, ?)"
     query3 = "INSERT INTO entity_for_record(record_id, entity_id) VALUES(?, ?)"
 
     for record in json:
@@ -118,19 +139,33 @@ def do_expand():
 
         exp.append((id, viaf_id, altre_opere, wiki_page, wiki_info))
 
-        entities = dandelion_extract_entities(record['description'])
+        text_to_extract_from = record['description'] + ' ' + record['subject']
+        entities = dandelion_extract_entities(text_to_extract_from)
         if 'annotations' in entities:
             for a in entities['annotations']:
-                categories_stringified = ''  # ', '.join([i.split('http://dbpedia.org/ontology/', 1)[1] for i in a['types']])
-                if 'categories' in a:
-                    # if types_stringified != '' and len(a['categories']) > 0:
-                        # types_stringified = types_stringified + ', '
-                    categories_stringified = categories_stringified + ', '.join([c for c in a['categories']])
-                exp2.append((a['id'], a['title'], a['abstract'], categories_stringified, a['uri']))
+                coords_stringified = ''
+
+                # Coordinates
+
+                # luogo
+                coords = get_coordinates(a['title'])
+                if coords is not None:
+                    coords_stringified = str(coords[0]) + ',' + str(coords[1])
+                else:
+                    # persona (data di nascita)
+                    coords = get_birth_location_coords(a['title'])
+                    if coords is not None:
+                        coords_stringified = str(coords[0]) + ',' + str(coords[1])
+
+
+                # Image
+                image_full = ''
+                if 'image' in a and 'full' in a['image']:
+                    image_full = a['image']['full']
+
+                exp2.append((a['id'], a['title'], a['abstract'], image_full, coords_stringified, a['uri']))
                 exp3.append((id, a['id']))
         else:
-            exp2.append(('', '', '', '', ''))
-            exp3.append(('', ''))
             print(' [*] hit dandelion daily limit!')
 
         if id == len(json):
