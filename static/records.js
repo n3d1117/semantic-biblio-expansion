@@ -15,13 +15,14 @@ new Vue({
 		perPage: 25,
 		filter: null,
 		loadingButtonIndex: null,
-		altroModalInfo: { title: '', contributor: '', date: '', language: '', publisher: '', type: '', format: '', relation: '', link: '' },
+		altroModalInfo: { place: '', title: '', contributor: '', date: '', language: '', publisher: '', type: '', format: '', relation: '', link: '' },
 		espandiModalInfo: { title: '', viaf_id: '', author_other_works: '', author_wiki_page: '', author_wiki_info: '', entities: [] },
 	},
     delimiters: ["<%","%>"],
 	methods: {
 		showAltro(item, button) {
 			this.altroModalInfo.title = `Informazioni aggiuntive su "${item.title}"`;
+			this.altroModalInfo.place = item.place;
 			this.altroModalInfo.contributor = item.contributor;
 			this.altroModalInfo.date = item.date;
 			this.altroModalInfo.language = item.language;

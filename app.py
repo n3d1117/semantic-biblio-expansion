@@ -49,7 +49,7 @@ def _expand():
 
 @app.route('/api/v1/records', methods=['GET'])
 def get_records():
-    records = db.query_db('SELECT * FROM records')
+    records = db.query_db('SELECT r.*, p.name AS place FROM records r, places p WHERE r.published_in = p.id')
     return jsonify(records)
 
 
@@ -112,18 +112,18 @@ def search():
     response = []
 
     # search query in entities
-    # entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
-    # for e in entities:
-    #     if e['coords'] != '':
-    #         response.append({
-    #             'type': 'entity',
-    #             'entity_id': e['entity_id'],
-    #             'coords': e['coords'],
-    #             'title': e['title'],
-    #             'abstract': e['abstract'],
-    #             'image_url': e['image_url'],
-    #             'uri': e['uri']
-    #         })
+    entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
+    for e in entities:
+        if e['coords'] != '':
+            response.append({
+                'type': 'entity',
+                'entity_id': e['entity_id'],
+                'coords': e['coords'],
+                'title': e['title'],
+                'abstract': e['abstract'],
+                'image_url': e['image_url'],
+                'uri': e['uri']
+            })
 
     # search query in places
     places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))

@@ -21,9 +21,12 @@ img {
     font-size: 13px;
 }
 
+.scrollable {
+    overflow: auto;
+}
+
 .landmark {
     width: 250px;
-    padding: 7px 0 0 0;
     border-radius: 12px;
     font-family: Helvetica, Arial, sans-serif;
     -webkit-transform-origin: 0 10px;
@@ -32,15 +35,14 @@ img {
 
 .landmark h1 {
     margin-top: 0;
-    padding: 5px 15px;
-    font-size: 16px;
+    padding: 10px 15px 10px;
+    font-size: 18px;
     margin-bottom: 0;
     font-weight: bold;
 }
 
 .landmark section {
-    max-height: 300px;
-    overflow: auto;
+    max-height: 250px;
     padding: 0 15px 5px;
     font-size: 14px;
 }
@@ -52,6 +54,16 @@ img {
     word-wrap: break-word;
 }
 
+.coords {
+    border-radius: 5px;
+    background: #212529eb;
+    color: white;
+    text-align: center;
+    margin-top: 7px;
+    padding: 4px 7px;
+    font-size: 12px;
+}
+
 .landmark section p:last-child {
     margin-bottom: 0;
     border-bottom: none;
@@ -61,8 +73,14 @@ img {
     margin-top: 0;
 }
 
-.landmark section p:hover {
+.hoverable:hover {
     background-color: #e6e6e6;
+}
+
+.wikipedia-link {
+    font-size: 10px;
+    font-weight: bolder;
+    letter-spacing: 1px;
 }
 
 .leaflet-popup-content {
@@ -71,4 +89,6 @@ img {
 
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
     background: rgba(247, 247, 247, 0.95);
+    padding-left: 0;
+    padding-right: 0;
 }

@@ -37,6 +37,7 @@
 		<b-pagination align="center" size="md" :total-rows="totalRows" v-model="currentPage" :per-page="perPage"></b-pagination>
 
 		<b-modal centered id="altroModalInfo" @hide="resetModals" :title="altroModalInfo.title" ok-only>
+            <p style="display:inline" v-if="altroModalInfo.place !== ''"><strong>• Luogo di edizione: </strong><% altroModalInfo.place %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.contributor !== ''"><strong>• Autore secondario: </strong><% altroModalInfo.contributor %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.date !== ''"><strong>• Data: </strong><% altroModalInfo.date %><br></p>
 			<p style="display:inline" v-if="altroModalInfo.language !== ''"><strong>• Lingua: </strong><% altroModalInfo.language %><br></p>

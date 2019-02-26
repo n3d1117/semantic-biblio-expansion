@@ -3,6 +3,7 @@ import wikipedia
 from lxml import etree
 from import_records import get_coordinates
 import requests
+from bs4 import BeautifulSoup
 
 
 def dandelion_extract_entities(text):
@@ -26,7 +27,6 @@ def get_author_viaf_id(record):
             for result in j['result']:
                 if result['nametype'] == 'personal':
                     return result['viafid']
-    # todo check contributors too?
     return ''
 
 
@@ -65,7 +65,7 @@ def get_birth_location_coords(person):
     wikipedia.set_lang('it')
     url = 'https://query.wikidata.org/sparql'
     query = """
-    SELECT DISTINCT ?item ?itemLabel ?birthLocation ?birthLocationLabel WHERE {
+    SELECT DISTINCT ?item ?birthLocation ?birthLocationLabel WHERE {
         ?item rdfs:label "%s"@it; wdt:P19 ?birthLocation
         SERVICE wikibase:label { bd:serviceParam wikibase:language "it". }
     }
@@ -74,9 +74,53 @@ def get_birth_location_coords(person):
     data = r.json()
     if 'results' in data and 'bindings' in data['results']:
         for item in data['results']['bindings']:
-            return wikipedia.page(item['birthLocationLabel']['value']).coordinates
+            try:
+                c = wikipedia.page(item['birthLocationLabel']['value']).coordinates
+                return c
+            except:
+                continue
     else:
         return None
+
+
+def get_business_location_coords(org):
+    wikipedia.set_lang('it')
+    url = 'https://query.wikidata.org/sparql'
+    query = """
+    SELECT DISTINCT ?item ?place ?placeLabel WHERE {
+        ?item rdfs:label "%s"@it; wdt:P159 ?place
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "it". }
+    }
+    """ % org
+    r = requests.get(url, params={'format': 'json', 'query': query})
+    data = r.json()
+    if 'results' in data and 'bindings' in data['results']:
+        for item in data['results']['bindings']:
+            try:
+                c = wikipedia.page(item['placeLabel']['value']).coordinates
+                return c
+            except:
+                continue
+    else:
+        return None
+
+
+def extract_first_geolink_from_wiki_summary(query):
+    wikipedia.set_lang('it')
+    try:
+        full_html = wikipedia.page(query).html()
+    except:
+        return None
+    summary = full_html.split('<p>')[1].split('</p>')[0]
+    soup = BeautifulSoup(summary, "html.parser")
+    links = soup.find_all('a', href=True)
+    for a in links:
+        try:
+            c = wikipedia.page(a['title']).coordinates
+            return c
+        except:
+            continue
+    return None
 
 
 if __name__ == '__main__':
@@ -88,7 +132,12 @@ if __name__ == '__main__':
     # wikipedia.set_lang('it')
     # print(wikipedia.page('Valdinievole').links)
     # print(get_birth_location_coords('Società Italiana Ernesto Breda per Costruzioni Meccaniche'))
-    print()
+    # import geocoder
+    # g = geocoder.osm('Valdinievole')
+    # print(g.latlng)
+    print(get_birth_location_coords('Iris Origo'))
+    print(get_business_location_coords('Banca Monte dei Paschi di Siena'))
+    print(extract_first_geolink_from_wiki_summary('Valdinievole'))
 
 
 def do_expand():
@@ -156,13 +205,24 @@ def do_expand():
                     coords = get_birth_location_coords(a['title'])
                     if coords is not None:
                         coords_stringified = str(coords[0]) + ',' + str(coords[1])
-
+                    else:
+                        # sede legale / luogo di formazione
+                        coords = get_business_location_coords(a['title'])
+                        if coords is not None:
+                            coords_stringified = str(coords[0]) + ',' + str(coords[1])
+                        else:
+                            # estrai primo link geolocalizzato dal summary di wikipedia
+                            coords = extract_first_geolink_from_wiki_summary(a['title'])
+                            if coords is not None:
+                                coords_stringified = str(coords[0]) + ',' + str(coords[1])
 
                 # Image
                 image_full = ''
-                if 'image' in a and 'full' in a['image']:
-                    image_full = a['image']['full']
+                if 'image' in a and 'thumbnail' in a['image']:
+                    image_full = a['image']['thumbnail']
 
+                # todo uncomment if
+                # if coords_stringified != '':
                 exp2.append((a['id'], a['title'], a['abstract'], image_full, coords_stringified, a['uri']))
                 exp3.append((id, a['id']))
         else:
