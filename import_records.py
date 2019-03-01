@@ -29,8 +29,8 @@ def luogo_pubblicazione(r):
             for sf in el.getElementsByTagName('sf'):
                 if sf.attributes['c'].value == 'a':
                     luogo = sf.childNodes[0].nodeValue
-                    luogo = luogo.replace("[", "").replace("]", "").replace(" etc.", "").replace(" V. P.", "")
-                    if luogo not in ['S.l.', 'S. l.', 'A. 1', 'Periodicità non determinata']:
+                    luogo = luogo.replace("[", "").replace("]", "").replace(" etc.", "").replace(" V. P.", "").replace(" \etc.!", "")
+                    if luogo not in ['S.l.', 'S. l.', 'S l.', 's.l.', 'A. 1', 'v.', 'Periodicità non determinata']:
                         return luogo.strip()
                     else:
                         return None
@@ -40,9 +40,10 @@ def luogo_pubblicazione(r):
 def get_coordinates(place):
     wikipedia.set_lang('it')
     try:
-        return wikipedia.page(place).coordinates
+        coords = wikipedia.page(place).coordinates
+        return str(coords[0]) + ',' + str(coords[1])
     except:
-        return None
+        return ''
 
 
 def get_page_id(place):
@@ -91,21 +92,54 @@ def do_import(max_num):
 
             if luogo is not None:
                 coords = get_coordinates(luogo)
-                if coords is not None and coords != '':
-                    coords_stringified = str(coords[0]) + ',' + str(coords[1])
-                    place_id = get_page_id(luogo)
-                    if place_id is not None and not any(x[0] == place_id for x in places):
-                        places.append((place_id, luogo, coords_stringified))
+
+                # Hardcoded coordinates
+                if luogo == 'Accademia dei Georgofili':
+                    coords = '43.7685119,11.255005'
+                    place_id = '6569185'
+                elif luogo == 'Massa':
+                    coords = '44.033333,10.133333'
+                    place_id = '875754'
+                elif luogo == 'Castel S. Niccolò':
+                    coords = '43.7192741,11.5975257'
+                    place_id = '31541'
+                elif luogo == 'Porcari':
+                    coords = '43.8419546,10.6008321'
+                    place_id = '32388'
+                elif luogo == 'Cascina':
+                    coords = '43.6877668,10.4729074'
+                    place_id = '34342'
+                elif luogo == 'San Vincenzo':
+                    coords = '43.100134,10.540344'
+                    place_id = '32495'
+                elif luogo == 'Genova':
+                    coords = '44.4264000,8.9151900'
+                    place_id = '2547618'
+                elif luogo == 'Monte Oriolo, Impruneta':
+                    coords = '43.70869,11.25515'
+                    place_id = 'Q18487140'
+
+                if coords != '':
+                    if place_id is None:
+                        place_id = get_page_id(luogo)
+
+                    if place_id is not None:
+                        if not any(x[0] == place_id for x in places):
+                            places.append((str(place_id), luogo, coords))
+
+                        # Increment counters
+                        count += 1
+                        x += bit
+
+                        d = record2dict(record, place_id)
+                        array.append((d['title'].strip(), d['subject'], d['creator'], d['contributor'], d['date'],
+                                      d['description'], d['language'], d['publisher'], d['type'], d['format'],
+                                      d['relation'],  d['published_in'], d['link']))
+                    else:
+                        print('could not find page id for ' + luogo + ', skipping...')
                 else:
-                    print('could not find coordinates for ' + luogo)
+                    print('could not find coordinates for ' + luogo + ', skipping...')
 
-            d = record2dict(record, place_id)
-            array.append((d['title'].strip(), d['subject'], d['creator'], d['contributor'], d['date'], d['description'],
-                          d['language'], d['publisher'], d['type'], d['format'], d['relation'], d['published_in'], d['link']))
-
-            count += 1
-
-            x += bit
             desc = "Importing records... ({}/{})".format(count, max_num)
             yield "data: {}%%{}\n\n".format(str(x), desc)
         else:
