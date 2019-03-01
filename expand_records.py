@@ -102,7 +102,9 @@ def do_expand():
 
         exp.append((id, viaf_id, altre_opere, wiki_page, wiki_info))
 
-        text_to_extract_from = clean(record['description'] + ' ' + record['subject'])
+        text_to_extract_from = clean(record['description']) + ', ' + record['subject'] + ', ' + \
+                               author_cleanup(record['creator']) + ', ' + author_cleanup(record['contributor'])
+
         print(' [*] text: {}'.format(text_to_extract_from))
 
         entities = spacy_extract_entities(text_to_extract_from)
@@ -113,9 +115,9 @@ def do_expand():
         print()
 
         for entity in annotated_entities:
-            # todo if entity['coords'] != ''
-            exp2.append((entity['id'], entity['title'], entity['abstract'], entity['image'], entity['coords'], entity['uri']))
-            exp3.append((id, entity['id']))
+            if entity['coords'] != '':
+                exp2.append((entity['id'], entity['title'], entity['abstract'], entity['image'], entity['coords'], entity['uri']))
+                exp3.append((id, entity['id']))
 
         if id == len(json):
             yield "data: {}%%{}\n\n".format('100', 'done')
@@ -135,6 +137,9 @@ def do_expand():
         # elimina entità duplicate
         db.execute("DELETE FROM entities WHERE id NOT IN (SELECT MIN(id) FROM entities GROUP BY entity_id)")
         db.execute("DELETE FROM entity_for_record WHERE id NOT IN (SELECT MIN(id) FROM entity_for_record GROUP BY record_id, entity_id)")
+
+        # elimina entità ambigue
+        db.execute("DELETE FROM entities WHERE abstract=''")
 
         db.commit()
         print(' [*] done!')
