@@ -10,6 +10,7 @@ html, #map {
 
 img {
     object-fit: cover;
+    margin-bottom: 7px;
 }
 
 #search {
@@ -59,7 +60,6 @@ img {
     background: #212529eb;
     color: white;
     text-align: center;
-    margin-top: 7px;
     padding: 4px 7px;
     font-size: 12px;
 }

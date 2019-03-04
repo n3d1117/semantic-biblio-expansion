@@ -49,11 +49,11 @@
 		</b-modal>
 
 		<b-modal centered id="espandiModalInfo" size="lg" @hide="resetModals" :title="espandiModalInfo.title" ok-only>
-            <p style="display:inline" v-if="espandiModalInfo.viaf_id !== ''"><strong>• Pagina VIAF: </strong><a :href="'https://viaf.org/viaf/' + espandiModalInfo.viaf_id + '/'" target="_blank">https://viaf.org/viaf/<% espandiModalInfo.viaf_id %>/</a><br></p>
+            <p style="display:inline" v-if="espandiModalInfo.viaf_id !== ''"><strong>• Pagina VIAF autore: </strong><a :href="'https://viaf.org/viaf/' + espandiModalInfo.viaf_id + '/'" target="_blank">https://viaf.org/viaf/<% espandiModalInfo.viaf_id %>/</a><br></p>
             <p style="display:inline" v-if="espandiModalInfo.author_wiki_page !== ''"><strong>• Pagina Wikipedia autore: </strong><a :href="espandiModalInfo.author_wiki_page" target="_blank"><% espandiModalInfo.author_wiki_page %></a><br></p>
             <p style="display:inline" v-if="espandiModalInfo.author_wiki_info !== ''"><strong>• Biografia autore: </strong><% espandiModalInfo.author_wiki_info %><br></p>
             <div v-if="espandiModalInfo.author_other_works[0] !== ''"><p style="display:inline"><strong>• Altre opere: </strong></p><br><ul><li v-for="work in espandiModalInfo.author_other_works"><% work %></li></ul></div>
-            <div v-if="espandiModalInfo.entities !== ''"><p style="display:inline"><strong>• Entità trovate nel campo descrizione: </strong></p><br><ul><li v-for="e in espandiModalInfo.entities"><a :href="e.uri" target="_blank"><% e.title %></a>: <% e.abstract %><br></li></ul></div>
+            <div v-if="espandiModalInfo.entities !== ''"><p style="display:inline"><strong>• Entità trovate nel campo descrizione/autore/soggetti: </strong></p><br><ul><li v-for="e in espandiModalInfo.entities"><a :href="e.uri" target="_blank"><% e.title %></a>: <% e.abstract %><br></li></ul></div>
 		</b-modal>
 	</div>
 
