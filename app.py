@@ -92,19 +92,6 @@ def get_expanded_record():
         return jsonify(data)
 
 
-@app.route('/api/v1/get_entities_for_record', methods=['GET'])
-def get_entities_for_record():
-    entities = db.query_db('SELECT e.id AS record_id, en.title\
-                            FROM expanded_records AS e, entities AS en, entity_for_record AS ent\
-                            WHERE e.id = ent.record_id and ent.entity_id = en.entity_id\
-                            ORDER BY e.id')
-    result = {}
-    for e in entities:
-        if e['title'] != '':
-            result.setdefault(e['record_id'], []).append(e['title'])
-    return jsonify(result)
-
-
 @app.route('/api/v1/search', methods=['GET'])
 def search():
     query = request.args.get('q')
@@ -112,18 +99,18 @@ def search():
     response = []
 
     # search query in entities
-    entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
-    for e in entities:
-        if e['coords'] != '':
-            response.append({
-                'type': 'entity',
-                'entity_id': e['entity_id'],
-                'coords': e['coords'],
-                'title': e['title'],
-                'abstract': e['abstract'],
-                'image_url': e['image_url'],
-                'uri': e['uri']
-            })
+    # entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
+    # for e in entities:
+    #     if e['coords'] != '':
+    #         response.append({
+    #             'type': 'entity',
+    #             'entity_id': e['entity_id'],
+    #             'coords': e['coords'],
+    #             'title': e['title'],
+    #             'abstract': e['abstract'],
+    #             'image_url': e['image_url'],
+    #             'uri': e['uri']
+    #         })
 
     # search query in places
     places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))
@@ -184,6 +171,47 @@ def get_geo_entities_for_record():
     geo_entities = db.query_db('SELECT en.* FROM entity_for_record e, entities en\
                                 WHERE e.entity_id = en.entity_id AND en.coords != "" AND e.record_id = {}'.format(record_id))
     return jsonify(geo_entities)
+
+
+@app.route('/api/v1/get_full_record', methods=['GET'])
+def get_full_record():
+    record_id = request.args.get('record_id')
+    record = db.query_db('SELECT r.*, p.name as luogo_pubblicazione, e.* '
+                         'FROM records r, expanded_records e, places p '
+                         'WHERE e.id = r.id and r.published_in = p.id and r.id = {}'.format(record_id))
+    result = {
+        'id': record[0]['id'],
+        'title': record[0]['title'],
+        'subject': record[0]['subject'],
+        'creator': record[0]['creator'],
+        'contributor': record[0]['contributor'],
+        'date': record[0]['date'],
+        'description': record[0]['description'],
+        'language': record[0]['language'],
+        'publisher': record[0]['publisher'],
+        'type': record[0]['type'],
+        'format': record[0]['format'],
+        'relation': record[0]['relation'],
+        'published_in': record[0]['luogo_pubblicazione'],
+        'link': record[0]['link'],
+        'viaf_id': record[0]['viaf_id'],
+        'author_other_works': record[0]['author_other_works'],
+        'author_wiki_page': record[0]['author_wiki_page'],
+        'author_wiki_info': record[0]['author_wiki_info'],
+        'entities': []
+    }
+    entities = db.query_db('SELECT en.* FROM entity_for_record e, entities en '
+                           'WHERE e.entity_id = en.entity_id and e.record_id = {}'.format(record_id))
+    for e in entities:
+        result['entities'].append({
+            'id': e['entity_id'],
+            'title': e['title'],
+            'abstract': e['abstract'],
+            'image_url': e['image_url'],
+            'uri': e['uri'],
+            'coords': e['coords']
+        })
+    return jsonify(result)
 
 
 @app.route('/init_db')

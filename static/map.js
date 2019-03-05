@@ -20,14 +20,19 @@ function handleForm(event) {
 }
 form.addEventListener('submit', handleForm);
 
-L.Map.prototype.setViewOffset = function (latlng, offset) {
-    let targetPoint = this.project(latlng, this.getZoom()).subtract(offset),
-        targetLatLng = this.unproject(targetPoint, this.getZoom());
-    return this.panTo(targetLatLng, this.getZoom());
-};
-
 let sidebar = L.control.sidebar('sidebar', { closeButton: true, position: 'right', autoPan: false });
 map.addControl(sidebar);
+
+/*Legend specific*/
+let legend = L.control({ position: "bottomleft" });
+legend.onAdd = function() {
+    let div = L.DomUtil.create("div", "legend");
+    div.innerHTML += "<h4>Legenda</h4>";
+    div.innerHTML += '<i class="icon" style="background-image: url(https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png);background-repeat: no-repeat;"></i><span>Luogo di edizione</span><br>';
+    div.innerHTML += '<i class="icon" style="background-image: url(https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png);background-repeat: no-repeat;"></i><span>Entità</span>';
+    return div;
+};
+legend.addTo(map);
 
 async function searchPlaces() {
 
@@ -44,7 +49,10 @@ async function searchPlaces() {
 
             if (value.type === 'place') {
                 let marker = generateMarkerForPlace(lat, long, value);
-                marker.on('click', function() { sidebar.hide(); });
+                marker.on('click', function() {
+                    sidebar.hide();
+                    document.getElementById('sidebar').scrollTop = 0;
+                });
                 layers.push(marker);
                 oms.addMarker(marker);
             }
@@ -58,7 +66,9 @@ async function searchPlaces() {
         });
 
         setTimeout(function() {
-            layers = layers.filter(function(marker) { return marker.data.hasRecords });
+            layers = layers.filter(function (marker) {
+                return !isEmpty(marker.data.geo_entities);
+            });
             let group = L.featureGroup(layers);
             map.fitBounds(group.getBounds(), { padding: L.point(30, 30) });
             setTimeout(function () {
@@ -79,12 +89,13 @@ function generateMarkerForPlace(lat, long, place) {
     let rLoop = getRandomInt(2, 4);
 
     let marker = L.marker([lat, long], { bounceOnAdd: true, bounceOnAddOptions: { duration: rDuration, height: rHeight, loop: rLoop } });
-    marker.data = { id: place.id, name: place.name, lat: lat, long: long, hasRecords: false };
+    marker.data = { id: place.id, name: place.name, lat: lat, long: long, geo_entities: {}, full_records: {} };
     marker.bindPopup();
     marker.bindTooltip(place.name, { className: "marker-label" });
 
     let div = document.createElement("div");
     div.className = "landmark";
+    div.style.width = '300px';
 
     let title = div.appendChild(document.createElement("h1"));
     title.textContent = place.name;
@@ -94,24 +105,47 @@ function generateMarkerForPlace(lat, long, place) {
 
     let section = scrollable.appendChild(document.createElement("section"));
 
-    place.records.sort((a, b) => a.title.localeCompare(b.title)).forEach(async function(record) {
-        try {
-            const response = await axios.get(`/api/v1/geo_entities_for_record?record_id=${record.record_id}`);
+    let promises = [];
 
+    place.records.sort((a, b) => a.title.localeCompare(b.title)).forEach(function(record, index, arr) {
+        promises.push(axios.get(`/api/v1/geo_entities_for_record?record_id=${record.record_id}`));
+
+        axios.get(`/api/v1/get_full_record?record_id=${record.record_id}`).then(function (response) {
+            marker.data.full_records[record.record_id] = response.data;
+
+            let hoverable = section.appendChild(document.createElement("div"));
+            hoverable.className = "hoverable";
+
+            let p = hoverable.appendChild(document.createElement("p"));
+            p.className = `record-title`;
+            p.textContent = record.title;
+            p.onclick = function () {
+                document.getElementById('sidebar').scrollTop = 0;
+                recordClicked(lat, long, marker.data.full_records[record.record_id], marker.data.geo_entities[record.record_id]);
+            };
+
+            let i = p.appendChild(document.createElement("i"));
+            i.className = "right-arrow";
+
+            let className = (index !== arr.length - 1) ? "gap" : "gap-no-border";
+            let gap = section.appendChild(document.createElement("div"));
+            gap.className = className;
+
+        }).catch(function (error) {
+            console.log(error);
+        });
+    });
+
+    axios.all(promises).then(function(results) {
+        results.forEach(function(response) {
+            let id = response.request.responseURL.split('record_id=')[1];
             let geo_entities = response.data.filter(function removeRedundantEntity(entity) {
                 return entity.title !== marker.data.name && entity.title !== 'Provincia di ' + marker.data.name;
             });
-
-            marker.data.hasRecords = geo_entities.length > 0;
-            let p = section.appendChild(document.createElement("p"));
-            p.className = "hoverable";
-            p.textContent = record.title;
-            p.onclick = function () {
-                recordClicked(lat, long, record, geo_entities);
+            if (geo_entities.length > 0) {
+                marker.data.geo_entities[id] = geo_entities;
             }
-        } catch (error) {
-            console.error(error);
-        }
+        })
     });
 
     marker.setPopupContent(div);
@@ -119,7 +153,7 @@ function generateMarkerForPlace(lat, long, place) {
 }
 
 function generateMarkerForEntity(lat, long, entity) {
-    let marker = L.marker([lat, long], { icon: greenIcon, bounceOnAdd: true, bounceOnAddOptions: {duration: 1000, height: 70, loop: 3} });
+    let marker = L.marker([lat, long], { icon: greenIcon, bounceOnAdd: true, bounceOnAddOptions: { duration: 1000, height: 70, loop: 3 } });
     marker.bindPopup();
     marker.bindTooltip(entity.title, { direction: "right", className: "marker-label", offset: [15, -20] });
 
@@ -185,8 +219,7 @@ function recordClicked(place_lat, place_long, record, geo_entities) {
         }
     });
 
-    sidebar.setContent(record.title);
-    sidebar.show();
+    setSidebarContent(record);
 }
 
 function clearAllLayers() {
@@ -200,9 +233,116 @@ function clearAllLayers() {
         });
         additionalLayers = [];
         sidebar.hide();
+        oms.clearMarkers();
     } catch (e) {
         console.log(e.message);
     }
+}
+
+function setSidebarContent(record) {
+    let div = document.createElement("div");
+
+    let h1 = div.appendChild(document.createElement("h4"));
+    h1.textContent = record.title;
+
+    if (record.creator !== '') {
+        appendLeftRightSidebarText('Autore: ', record.creator, div);
+    }
+    if (record.contributor !== '') {
+        appendLeftRightSidebarText('Autore secondario: ', record.contributor, div);
+    }
+    if (record.date !== '') {
+        appendLeftRightSidebarText('Data: ', record.date, div);
+    }
+    if (record.description !== '') {
+        appendLeftRightSidebarText('Descrizione: ', record.description, div);
+    }
+    if (record.format !== '') {
+        appendLeftRightSidebarText('Formato: ', record.format, div);
+    }
+    if (record.language !== '') {
+        appendLeftRightSidebarText('Lingua: ', record.language, div);
+    }
+    if (record.link !== '') {
+        appendLeftRightSidebarText('Link: ', record.link, div);
+    }
+    if (record.published_in !== '') {
+        appendLeftRightSidebarText('Luogo di pubblicazione: ', record.published_in, div);
+    }
+    if (record.publisher !== '') {
+        appendLeftRightSidebarText('Editore: ', record.publisher, div);
+    }
+    if (record.relation !== '') {
+        appendLeftRightSidebarText('Relazione: ', record.relation, div);
+    }
+    if (record.subject !== '') {
+        appendLeftRightSidebarText('Soggetti: ', record.subject, div);
+    }
+    if (record.type !== '') {
+        appendLeftRightSidebarText('Tipo: ', record.type, div);
+    }
+    if (record.viaf_id !== '') {
+        appendLeftRightSidebarText('Viaf ID autore: ', record.viaf_id, div);
+    }
+    if (record.author_other_works !== '') {
+        appendLeftRightSidebarArrayText('Altre opere: ', record.author_other_works.split('~~'), div);
+    }
+    if (record.author_wiki_info !== '') {
+        appendLeftRightSidebarText('Biografia Wikipedia Autore: ', record.author_wiki_info, div);
+    }
+    if (record.author_wiki_page !== '') {
+        appendLeftRightSidebarText('Link Wikipedia Autore: ', record.author_wiki_page, div);
+    }
+    if (record.entities.length > 0) {
+        appendLeftRightSidebarEntitiesText('Entità trovate nel campo descrizione/autore/soggetti: ', record.entities, div);
+    }
+
+    sidebar.setContent(div);
+    sidebar.show();
+}
+
+function appendLeftRightSidebarText(left, right, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left),
+        right_text = document.createTextNode(right);
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(right_text);
+}
+
+function appendLeftRightSidebarArrayText(left, right, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left);
+
+    let ul = document.createElement("ul");
+    right.forEach(function(value) {
+        let li = document.createElement("li");
+        li.textContent = value;
+        ul.appendChild(li);
+    });
+
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(ul);
+}
+
+function appendLeftRightSidebarEntitiesText(left, right, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left);
+
+    let ul = document.createElement("ul");
+    right.forEach(function(entity) {
+        let li = document.createElement("li");
+        li.textContent = entity.title + '. ' + entity.abstract;
+        ul.appendChild(li);
+    });
+
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(ul);
 }
 
 let greenIcon = new L.Icon({
@@ -211,9 +351,24 @@ let greenIcon = new L.Icon({
     iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
 });
 
+L.Map.prototype.setViewOffset = function (latlng, offset) {
+    let targetPoint = this.project(latlng, this.getZoom()).subtract(offset),
+        targetLatLng = this.unproject(targetPoint, this.getZoom());
+    return this.panTo(targetLatLng, this.getZoom());
+};
+
 function clickZoom(marker) {
-    let offset = map.getZoom() <= 9 ? 120 : 90;
+    let offset = map.getZoom() <= 9 ? 120 : 105;
     map.setViewOffset(marker.getLatLng(), [0, offset]);
+}
+
+function isEmpty(obj) {
+    for (let prop in obj) {
+        if (obj.hasOwnProperty(prop))
+            return false;
+    }
+
+    return true;
 }
 
 /**

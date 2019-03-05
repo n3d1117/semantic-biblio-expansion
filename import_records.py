@@ -117,7 +117,7 @@ def do_import(max_num):
                     place_id = '2547618'
                 elif luogo == 'Monte Oriolo, Impruneta':
                     coords = '43.70869,11.25515'
-                    place_id = 'Q18487140'
+                    place_id = '18487140'
 
                 if coords != '':
                     if place_id is None:
