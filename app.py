@@ -34,7 +34,7 @@ def do_import():
 @app.route('/_import')
 def _import():
     init_db()
-    return Response(stream_with_context(import_records.do_import(1000)), mimetype='text/event-stream')
+    return Response(stream_with_context(import_records.do_import(2000)), mimetype='text/event-stream')
 
 
 @app.route('/expand')
@@ -95,22 +95,25 @@ def get_expanded_record():
 @app.route('/api/v1/search', methods=['GET'])
 def search():
     query = request.args.get('q')
+    exp = request.args.get('expansions') == 'true'
 
     response = []
 
     # search query in entities
-    # entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
-    # for e in entities:
-    #     if e['coords'] != '':
-    #         response.append({
-    #             'type': 'entity',
-    #             'entity_id': e['entity_id'],
-    #             'coords': e['coords'],
-    #             'title': e['title'],
-    #             'abstract': e['abstract'],
-    #             'image_url': e['image_url'],
-    #             'uri': e['uri']
-    #         })
+    if exp:
+        print('we out here')
+        entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
+        for e in entities:
+            if e['coords'] != '':
+                response.append({
+                    'type': 'entity',
+                    'entity_id': e['entity_id'],
+                    'coords': e['coords'],
+                    'title': e['title'],
+                    'abstract': e['abstract'],
+                    'image_url': e['image_url'],
+                    'uri': e['uri']
+                })
 
     # search query in places
     places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))
@@ -126,7 +129,7 @@ def search():
             })
 
     # search query in records
-    records = db.query_db('SELECT id AS record_id, title, published_in from records WHERE title LIKE "%{q}%" OR subject LIKE "%{q}%" OR description LIKE "%{q}%" OR creator LIKE "%{q}%" OR contributor LIKE "%{q}%" OR publisher LIKE "%{q}%"'.format(q=query))
+    records = db.query_db('SELECT id AS record_id, title, published_in from records WHERE title LIKE "% {q}%" OR subject LIKE "% {q}%" OR description LIKE "% {q}%" OR creator LIKE "% {q}%" OR contributor LIKE "% {q}%" OR publisher LIKE "% {q}%"'.format(q=query))
 
     records_places = []
     for r in records:

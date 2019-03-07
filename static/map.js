@@ -23,7 +23,22 @@ form.addEventListener('submit', handleForm);
 let sidebar = L.control.sidebar('sidebar', { closeButton: true, position: 'right', autoPan: false });
 map.addControl(sidebar);
 
-/*Legend specific*/
+let expansionsEnabled = false;
+
+let tooltip = $('[data-toggle="tooltip"]');
+tooltip.tooltip();
+let enabledExpansionBtn = document.getElementById('toggle-expansion-button');
+enabledExpansionBtn.addEventListener('click', function () {
+    enabledExpansionBtn.classList.toggle("disabled");
+    expansionsEnabled = !enabledExpansionBtn.classList.contains("disabled");
+    let newText = expansionsEnabled ? 'Disattiva espansioni' : 'Attiva espansioni';
+    tooltip.attr('data-original-title', newText).tooltip('show');
+    tooltip.mouseleave(function () {
+        $(this).tooltip('hide');
+    });
+});
+
+/* Legend specific */
 let legend = L.control({ position: "bottomleft" });
 legend.onAdd = function() {
     let div = L.DomUtil.create("div", "legend");
@@ -41,7 +56,7 @@ async function searchPlaces() {
     if (query === '') { return false }
 
     try {
-        const response = await axios.get(`/api/v1/search?q=${query}`);
+        const response = await axios.get(`/api/v1/search?q=${query}&expansions=${expansionsEnabled}`);
         response.data.map(function(value) {
 
             let lat = Number(value.coords.split(',')[0]);
@@ -58,16 +73,16 @@ async function searchPlaces() {
             }
 
             // Show markers for entities too
-            // if (value.type === 'entity') {
-            //     let marker = generateMarkerForEntity(lat, long, value);
-            //     layers.push(marker);
-            //     oms.addMarker(marker);
-            // }
+            if (value.type === 'entity') {
+                let marker = generateMarkerForEntity(lat, long, value);
+                layers.push(marker);
+                oms.addMarker(marker);
+            }
         });
 
         setTimeout(function() {
             layers = layers.filter(function (marker) {
-                return !isEmpty(marker.data.geo_entities);
+                return marker.type === 'entity' || !isEmpty(marker.data.geo_entities);
             });
             let group = L.featureGroup(layers);
             map.fitBounds(group.getBounds(), { padding: L.point(30, 30) });
@@ -107,11 +122,12 @@ function generateMarkerForPlace(lat, long, place) {
 
     let promises = [];
 
-    place.records.sort((a, b) => a.title.localeCompare(b.title)).forEach(function(record, index, arr) {
+    place.records.sort((a, b) => a.title.localeCompare(b.title)).forEach(function(record) {
         promises.push(axios.get(`/api/v1/geo_entities_for_record?record_id=${record.record_id}`));
 
         axios.get(`/api/v1/get_full_record?record_id=${record.record_id}`).then(function (response) {
             marker.data.full_records[record.record_id] = response.data;
+            marker.type = 'place';
 
             let hoverable = section.appendChild(document.createElement("div"));
             hoverable.className = "hoverable";
@@ -119,7 +135,7 @@ function generateMarkerForPlace(lat, long, place) {
             let p = hoverable.appendChild(document.createElement("p"));
             p.className = `record-title`;
             p.textContent = record.title;
-            p.onclick = function () {
+            p.onclick = function() {
                 document.getElementById('sidebar').scrollTop = 0;
                 recordClicked(lat, long, marker.data.full_records[record.record_id], marker.data.geo_entities[record.record_id]);
             };
@@ -127,9 +143,8 @@ function generateMarkerForPlace(lat, long, place) {
             let i = p.appendChild(document.createElement("i"));
             i.className = "right-arrow";
 
-            let className = (index !== arr.length - 1) ? "gap" : "gap-no-border";
             let gap = section.appendChild(document.createElement("div"));
-            gap.className = className;
+            gap.className = "gap";
 
         }).catch(function (error) {
             console.log(error);
@@ -142,9 +157,7 @@ function generateMarkerForPlace(lat, long, place) {
             let geo_entities = response.data.filter(function removeRedundantEntity(entity) {
                 return entity.title !== marker.data.name && entity.title !== 'Provincia di ' + marker.data.name;
             });
-            if (geo_entities.length > 0) {
-                marker.data.geo_entities[id] = geo_entities;
-            }
+            marker.data.geo_entities[id] = (geo_entities.length > 0) ? geo_entities : [];
         })
     });
 
@@ -156,6 +169,8 @@ function generateMarkerForEntity(lat, long, entity) {
     let marker = L.marker([lat, long], { icon: greenIcon, bounceOnAdd: true, bounceOnAddOptions: { duration: 1000, height: 70, loop: 3 } });
     marker.bindPopup();
     marker.bindTooltip(entity.title, { direction: "right", className: "marker-label", offset: [15, -20] });
+
+    marker.type = 'entity';
 
     let div = document.createElement("div");
     div.className = "landmark";

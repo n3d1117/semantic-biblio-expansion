@@ -141,6 +141,11 @@ def do_expand():
         # elimina entità ambigue
         db.execute("DELETE FROM entities WHERE abstract=''")
 
+        # elimina record aventi una sola entità associata, che coincide con il luogo di pubblicazione
+        db.execute("DELETE FROM records WHERE id IN(SELECT e.record_id FROM entity_for_record e, records r, places p, entities en\
+                    WHERE e.record_id = r.id AND r.published_in = p.id AND e.entity_id = en.entity_id\
+                    GROUP BY e.record_id HAVING COUNT(*) = 1 AND en.title = p.name)")
+
         db.commit()
         print(' [*] done!')
     except Exception as e:

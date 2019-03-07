@@ -103,11 +103,8 @@ img {
     border-bottom: 1px solid #bfbfbfad;
 }
 
-.gap-no-border {
-    height: 10px;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+div.gap:last-child {
+    border-bottom: none;
 }
 
 i.right-arrow {
@@ -182,4 +179,45 @@ i.right-arrow {
 
 #sidebar p {
     margin-bottom: 5px;
+}
+
+.leaflet-touch .leaflet-sidebar > .leaflet-control {
+    border-radius: 15px;
+}
+
+/* Toggle expansion */
+
+#toggle-expansion-button:before {
+    content: "";
+    width: 38px;
+    height: 32px;
+    display: inline-block;
+    vertical-align: text-top;
+    background-color: transparent;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-origin: content-box;
+}
+
+#toggle-expansion-button {
+    padding: 0;
+    cursor: pointer;
+    background-color: #ffffff;
+    border-color: transparent;
+}
+
+#toggle-expansion-button:focus, #toggle-expansion-button:active, #toggle-expansion-button:active:focus {
+    outline: none !important;
+    box-shadow: none;
+    background-color: #ffffff;
+    border-color: transparent;
+}
+
+#toggle-expansion-button:before {
+    background-image: url('../static/img/graph.png');
+}
+
+#toggle-expansion-button.disabled {
+    background-color: #ababab;
 }
