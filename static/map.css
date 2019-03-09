@@ -170,6 +170,11 @@ i.right-arrow {
 }
 
 /* Sidebar specific */
+
+#sidebar {
+    user-select: none;
+}
+
 #sidebar h4 {
     font-size: 16px;
     margin-right: 20px;
@@ -183,6 +188,10 @@ i.right-arrow {
 
 .leaflet-touch .leaflet-sidebar > .leaflet-control {
     border-radius: 15px;
+}
+
+ul {
+    padding-left: 20px;
 }
 
 /* Toggle expansion */
@@ -220,4 +229,91 @@ i.right-arrow {
 
 #toggle-expansion-button.disabled {
     background-color: #ababab;
+}
+
+/* Bouncing arrow */
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-30px);
+    }
+    60% {
+        transform: translateY(-15px);
+    }
+}
+
+@keyframes bounce-right {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateX(0);
+    }
+    40% {
+        transform: translateX(-30px);
+    }
+    60% {
+        transform: translateX(-15px);
+    }
+}
+
+@keyframes bounce-left {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateX(0);
+    }
+    40% {
+        transform: translateX(30px);
+    }
+    60% {
+        transform: translateX(15px);
+    }
+}
+
+.arrow {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    z-index: 401;
+    cursor: pointer;
+    background-size: contain;
+}
+
+.bottom-bouncing-arrow {
+    bottom: 0;
+    left: 50%;
+    margin-left: -20px;
+    background-image: url('../static/img/arrow-down.png');
+}
+
+.top-bouncing-arrow {
+    top: 80px;
+    left: 50%;
+    margin-left: -20px;
+    background-image: url('../static/img/arrow-up.png');
+}
+
+.left-bouncing-arrow {
+    left: 0;
+    top: 50%;
+    margin-top: 20px;
+    background-image: url('../static/img/arrow-left.png');
+}
+
+.right-bouncing-arrow {
+    right: 0;
+    top: 50%;
+    margin-top: 20px;
+    background-image: url('../static/img/arrow-right.png');
+}
+
+.bounce {
+    animation: bounce 2s infinite;
+}
+
+.bounce-right {
+    animation: bounce-right 2s infinite;
+}
+
+.bounce-left {
+    animation: bounce-left 2s infinite;
 }

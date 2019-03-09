@@ -23,6 +23,9 @@ form.addEventListener('submit', handleForm);
 let sidebar = L.control.sidebar('sidebar', { closeButton: true, position: 'right', autoPan: false });
 map.addControl(sidebar);
 
+document.getElementById('sidebar').addEventListener('mousedown', sidebarMouseDown, false);
+window.addEventListener('mouseup', sidebarMouseUp, false);
+
 let expansionsEnabled = false;
 
 let tooltip = $('[data-toggle="tooltip"]');
@@ -39,6 +42,7 @@ enabledExpansionBtn.addEventListener('click', function () {
 });
 
 /* Legend specific */
+
 let legend = L.control({ position: "bottomleft" });
 legend.onAdd = function() {
     let div = L.DomUtil.create("div", "legend");
@@ -104,7 +108,7 @@ function generateMarkerForPlace(lat, long, place) {
     let rLoop = getRandomInt(2, 4);
 
     let marker = L.marker([lat, long], { bounceOnAdd: true, bounceOnAddOptions: { duration: rDuration, height: rHeight, loop: rLoop } });
-    marker.data = { id: place.id, name: place.name, lat: lat, long: long, geo_entities: {}, full_records: {} };
+    marker.data = { name: place.name, lat: lat, long: long, geo_entities: {}, full_records: {} };
     marker.bindPopup();
     marker.bindTooltip(place.name, { className: "marker-label" });
 
@@ -137,7 +141,10 @@ function generateMarkerForPlace(lat, long, place) {
             p.textContent = record.title;
             p.onclick = function() {
                 document.getElementById('sidebar').scrollTop = 0;
-                recordClicked(lat, long, marker.data.full_records[record.record_id], marker.data.geo_entities[record.record_id]);
+                setSidebarContent(marker.data.full_records[record.record_id]);
+                if (expansionsEnabled) {
+                    recordClicked(lat, long, marker.data.geo_entities[record.record_id]);
+                }
             };
 
             let i = p.appendChild(document.createElement("i"));
@@ -167,6 +174,7 @@ function generateMarkerForPlace(lat, long, place) {
 
 function generateMarkerForEntity(lat, long, entity) {
     let marker = L.marker([lat, long], { icon: greenIcon, bounceOnAdd: true, bounceOnAddOptions: { duration: 1000, height: 70, loop: 3 } });
+    marker.data = { name: entity.title };
     marker.bindPopup();
     marker.bindTooltip(entity.title, { direction: "right", className: "marker-label", offset: [15, -20] });
 
@@ -209,32 +217,91 @@ function generateMarkerForEntity(lat, long, entity) {
     return marker;
 }
 
-function recordClicked(place_lat, place_long, record, geo_entities) {
+function recordClicked(place_lat, place_long, geo_entities) {
 
     // Rimuovi sognaposto entità e curve dalla mappa
     additionalLayers.map(function (c) {
         c.remove();
     });
+    additionalLayers = [];
+
+    let shouldPulsateArrow = false,
+        arrowPosition = '';
 
     geo_entities.map(function (entity) {
         let lat1 = Number(entity.coords.split(',')[0]);
         let long1 = Number(entity.coords.split(',')[1]);
 
         let marker = generateMarkerForEntity(lat1, long1, entity);
-        if (!map.hasLayer(marker)) {
-            marker.addTo(map);
+
+        if (!isDuplicate(marker)) {
             oms.addMarker(marker);
             additionalLayers.push(marker);
         }
 
         let curve = bezierCurve([place_lat, place_long], [lat1, long1]);
-        if (!map.hasLayer(curve)) {
-            curve.addTo(map);
-            additionalLayers.push(curve);
+        additionalLayers.push(curve);
+
+        if (!shouldPulsateArrow) {
+            shouldPulsateArrow = !map.getBounds().contains(marker.getLatLng());
+            if (shouldPulsateArrow) {
+                arrowPosition = relativePosition(place_lat, place_long, lat1, long1);
+            }
         }
     });
 
-    setSidebarContent(record);
+    let group = L.featureGroup(additionalLayers);
+    group.addTo(map);
+
+    let element = document.getElementById('pulsating-arrow');
+    if (element !== null) {
+        element.parentNode.removeChild(element);
+    }
+
+    if (shouldPulsateArrow) {
+        let arrow = document.createElement('div');
+        let className = 'arrow ';
+
+        switch (arrowPosition) {
+            case 'N':
+                className += 'top-bouncing-arrow bounce';
+                break;
+            case 'S':
+                className += 'bottom-bouncing-arrow bounce';
+                break;
+            case 'W':
+                className += 'left-bouncing-arrow bounce-left';
+                break;
+            case 'E':
+                className += 'right-bouncing-arrow bounce-right';
+                break;
+        }
+
+        arrow.className = className;
+        arrow.id = 'pulsating-arrow';
+
+        document.body.appendChild(arrow);
+        arrow.onclick = function () {
+            let element = document.getElementById('pulsating-arrow');
+            element.parentNode.removeChild(element);
+            map.fitBounds(group.getBounds(), {padding: L.point(30, 30)});
+        };
+    }
+}
+
+function isDuplicate(marker) {
+    let dupe = false;
+    map.eachLayer(function(layer) {
+        if (layer instanceof L.Marker && !dupe) {
+            if (layer.getLatLng().lat === marker.getLatLng().lat && layer.getLatLng().lng === marker.getLatLng().lng) {
+                if (layer.type === 'entity' && layer.data.name === marker.data.name) {
+                    console.log('duplicate ' + marker.data.name);
+                    dupe = true;
+                }
+            }
+        }
+    });
+    return dupe;
 }
 
 function clearAllLayers() {
@@ -279,7 +346,7 @@ function setSidebarContent(record) {
         appendLeftRightSidebarText('Lingua: ', record.language, div);
     }
     if (record.link !== '') {
-        appendLeftRightSidebarText('Link: ', record.link, div);
+        appendLeftRightSidebarTextWithHref('Link: ', record.link, div, record.link);
     }
     if (record.published_in !== '') {
         appendLeftRightSidebarText('Luogo di pubblicazione: ', record.published_in, div);
@@ -297,7 +364,7 @@ function setSidebarContent(record) {
         appendLeftRightSidebarText('Tipo: ', record.type, div);
     }
     if (record.viaf_id !== '') {
-        appendLeftRightSidebarText('Viaf ID autore: ', record.viaf_id, div);
+        appendLeftRightSidebarTextWithHref('Viaf ID autore: ', record.viaf_id, div, 'https://viaf.org/viaf/' + record.viaf_id);
     }
     if (record.author_other_works !== '') {
         appendLeftRightSidebarArrayText('Altre opere: ', record.author_other_works.split('~~'), div);
@@ -326,6 +393,21 @@ function appendLeftRightSidebarText(left, right, div) {
     p.appendChild(right_text);
 }
 
+function appendLeftRightSidebarTextWithHref(left, right, div, uri) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left);
+
+    let a = document.createElement("a");
+    a.href = uri;
+    a.target = "_blank";
+    a.textContent = right;
+
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(a);
+}
+
 function appendLeftRightSidebarArrayText(left, right, div) {
     let p = div.appendChild(document.createElement("p")),
         bold = div.appendChild(document.createElement('strong')),
@@ -351,7 +433,15 @@ function appendLeftRightSidebarEntitiesText(left, right, div) {
     let ul = document.createElement("ul");
     right.forEach(function(entity) {
         let li = document.createElement("li");
-        li.textContent = entity.title + '. ' + entity.abstract;
+
+        let a = li.appendChild(document.createElement("a"));
+        a.href = entity.uri;
+        a.target = "_blank";
+        a.textContent = entity.title;
+
+        let p = li.appendChild(document.createElement("p"));
+        p.textContent = entity.abstract;
+
         ul.appendChild(li);
     });
 
@@ -377,6 +467,14 @@ function clickZoom(marker) {
     map.setViewOffset(marker.getLatLng(), [0, offset]);
 }
 
+function relativePosition(lat1, long1, lat2, long2) {
+    let temp1 = (lat2 > lat1) ? 'N' : 'S';
+    let temp2 = (long2 > long1) ? 'E' : 'W';
+    let diff1 = (lat2 > lat1) ? lat2 - lat1 : lat1 - lat2;
+    let diff2 = (long2 > long1) ? long2 - long1 : long1 - long2;
+    return (diff1 > diff2) ? temp1 : temp2;
+}
+
 function isEmpty(obj) {
     for (let prop in obj) {
         if (obj.hasOwnProperty(prop))
@@ -386,13 +484,6 @@ function isEmpty(obj) {
     return true;
 }
 
-/**
- * Returns a random integer between min (inclusive) and max (inclusive).
- * The value is no lower than min (or the next integer greater than min
- * if min isn't an integer) and no greater than max (or the next integer
- * lower than max if max isn't an integer).
- * Using Math.round() will give you a non-uniform distribution!
- */
 function getRandomInt(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
@@ -415,4 +506,31 @@ function bezierCurve(from, to) {
     let midpointLatLng = [midpointY, midpointX];
     let pathOptions = { color: 'black', animate: 600, weight: 1 };
     return L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
+}
+
+/* Make sidebar draggable */
+
+function handleSidebarMouseMove(event) {
+
+    let sidebar = document.getElementById("sidebar");
+    sidebar.style.cursor = "move";
+    sidebar.style.position = 'relative';
+
+    let top = (event.clientY - 590);
+    if (top < -495) { top = -495; }
+    if (top > -5) { top = -5; }
+    sidebar.style.top = top + 'px';
+
+    let close = document.getElementById("closeButton");
+    close.style.position = 'relative';
+    close.style.top = top - 210 + 'px';
+    close.style.left = '-10px';
+}
+
+function sidebarMouseUp() {
+    window.removeEventListener('mousemove', handleSidebarMouseMove, true);
+}
+
+function sidebarMouseDown(e) {
+    window.addEventListener('mousemove', handleSidebarMouseMove, true);
 }

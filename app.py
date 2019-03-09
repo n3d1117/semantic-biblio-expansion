@@ -101,8 +101,7 @@ def search():
 
     # search query in entities
     if exp:
-        print('we out here')
-        entities = db.query_db('SELECT * FROM entities WHERE title LIKE "%{}%"'.format(query))
+        entities = db.query_db('SELECT * FROM entities WHERE title LIKE "{q} %" OR title LIKE "% {q}" OR title LIKE "% {q} %" OR title LIKE "{q}"'.format(q=query))
         for e in entities:
             if e['coords'] != '':
                 response.append({
@@ -129,7 +128,7 @@ def search():
             })
 
     # search query in records
-    records = db.query_db('SELECT id AS record_id, title, published_in from records WHERE title LIKE "% {q}%" OR subject LIKE "% {q}%" OR description LIKE "% {q}%" OR creator LIKE "% {q}%" OR contributor LIKE "% {q}%" OR publisher LIKE "% {q}%"'.format(q=query))
+    records = db.query_db('SELECT id AS record_id, title, published_in from records WHERE title LIKE "%{q}%" OR subject LIKE "%{q}%" OR description LIKE "%{q}%" OR creator LIKE "%{q}%" OR contributor LIKE "%{q}%" OR publisher LIKE "%{q}%"'.format(q=query))
 
     records_places = []
     for r in records:

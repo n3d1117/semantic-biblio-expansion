@@ -11,7 +11,7 @@ new Vue({
 			{ key: 'more', label: '', thStyle: { width: '90px' } },
 		],
 		currentPage: 1,
-		totalRows: 1530,
+		totalRows: 1364,
 		perPage: 25,
 		filter: null,
 		loadingButtonIndex: null,
