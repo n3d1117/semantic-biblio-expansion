@@ -14,6 +14,12 @@ oms.addListener('click', function (marker) {
     clickZoom(marker);
 });
 
+let greenIcon = new L.Icon({
+    iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+});
+
 let form = document.getElementById("search-form");
 function handleForm(event) {
     event.preventDefault();
@@ -26,8 +32,9 @@ map.addControl(sidebar);
 document.getElementById('sidebar').addEventListener('mousedown', sidebarMouseDown, false);
 window.addEventListener('mouseup', sidebarMouseUp, false);
 
-let expansionsEnabled = false;
+/* Toggle expansions */
 
+let expansionsEnabled = false;
 let tooltip = $('[data-toggle="tooltip"]');
 tooltip.tooltip();
 let enabledExpansionBtn = document.getElementById('toggle-expansion-button');
@@ -41,7 +48,7 @@ enabledExpansionBtn.addEventListener('click', function () {
     });
 });
 
-/* Legend specific */
+/* Legend */
 
 let legend = L.control({ position: "bottomleft" });
 legend.onAdd = function() {
@@ -52,6 +59,8 @@ legend.onAdd = function() {
     return div;
 };
 legend.addTo(map);
+
+/* Search */
 
 async function searchPlaces() {
 
@@ -101,6 +110,8 @@ async function searchPlaces() {
     }
 }
 
+/* Markers */
+
 function generateMarkerForPlace(lat, long, place) {
 
     let rDuration = getRandomInt(400, 700);
@@ -138,7 +149,7 @@ function generateMarkerForPlace(lat, long, place) {
 
             let p = hoverable.appendChild(document.createElement("p"));
             p.className = `record-title`;
-            p.textContent = record.title;
+            p.innerHTML = generateRecordInnerHTML(response.data, document.getElementById("search").value);
             p.onclick = function() {
                 document.getElementById('sidebar').scrollTop = 0;
                 setSidebarContent(marker.data.full_records[record.record_id]);
@@ -289,9 +300,33 @@ function recordClicked(place_lat, place_long, geo_entities) {
     }
 }
 
+function generateRecordInnerHTML(record, query) {
+    if (record.title.toLowerCase().includes(query)) {
+        return boldString(record.title, query);
+    } else if (record.description.toLowerCase().includes(query)) {
+        let newText = record.title + '<br>' + generateTextQueryBounds(record.description, query);
+        return boldString(newText, query);
+    } else if (record.subject.toLowerCase().includes(query)) {
+        let newText = record.title + '<br>' + generateTextQueryBounds(record.subject, query);
+        return boldString(newText, query);
+    } else if (record.creator.toLowerCase().includes(query)) {
+        let newText = record.title + '<br>' + generateTextQueryBounds(record.creator, query);
+        return boldString(newText, query);
+    } else if (record.contributor.toLowerCase().includes(query)) {
+        let newText = record.title + '<br>' + generateTextQueryBounds(record.contributor, query);
+        return boldString(newText, query);
+    } else if (record.publisher.toLowerCase().includes(query)) {
+        let newText = record.title + '<br>' + generateTextQueryBounds(record.publisher, query);
+        return boldString(newText, query);
+    }
+    return record.title;
+}
+
+/* Utils */
+
 function isDuplicate(marker) {
     let dupe = false;
-    map.eachLayer(function(layer) {
+    map.eachLayer(function (layer) {
         if (layer instanceof L.Marker && !dupe) {
             if (layer.getLatLng().lat === marker.getLatLng().lat && layer.getLatLng().lng === marker.getLatLng().lng) {
                 if (layer.type === 'entity' && layer.data.name === marker.data.name) {
@@ -320,6 +355,20 @@ function clearAllLayers() {
         console.log(e.message);
     }
 }
+
+function generateTextQueryBounds(text, query) {
+    let splits = text.toLowerCase().split(query);
+    let first = splits[0].split(" ").slice(-4).join(" ");
+    let second = splits[1].split(" ").slice(0, 4).join(" ");
+    return '<span class="record-smaller">' + '... ' + first + query + second + ' ...' + '</span>';
+}
+
+function boldString(str, find) {
+    let re = new RegExp(find, 'i');
+    return str.replace(re, '<b>$&</b>');
+}
+
+/* Sidebar */
 
 function setSidebarContent(record) {
     let div = document.createElement("div");
@@ -450,11 +499,36 @@ function appendLeftRightSidebarEntitiesText(left, right, div) {
     p.appendChild(ul);
 }
 
-let greenIcon = new L.Icon({
-    iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-    iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
-});
+function handleSidebarMouseMove(event) {
+
+    let sidebar = document.getElementById("sidebar");
+    sidebar.style.cursor = "move";
+    sidebar.style.position = 'relative';
+
+    let top = (event.clientY - 590);
+    if (top < -495) {
+        top = -495;
+    }
+    if (top > -5) {
+        top = -5;
+    }
+    sidebar.style.top = top + 'px';
+
+    let close = document.getElementById("closeButton");
+    close.style.position = 'relative';
+    close.style.top = top - 210 + 'px';
+    close.style.left = '-10px';
+}
+
+function sidebarMouseUp() {
+    window.removeEventListener('mousemove', handleSidebarMouseMove, true);
+}
+
+function sidebarMouseDown(e) {
+    window.addEventListener('mousemove', handleSidebarMouseMove, true);
+}
+
+/* Coordinates */
 
 L.Map.prototype.setViewOffset = function (latlng, offset) {
     let targetPoint = this.project(latlng, this.getZoom()).subtract(offset),
@@ -490,9 +564,7 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// quadratic bezier curve
 // https://gist.github.com/ryancatalani/6091e50bf756088bf9bf5de2017b32e6
-
 function bezierCurve(from, to) {
     let offsetX = to[1] - from[1],
         offsetY = to[0] - from[0];
@@ -506,31 +578,4 @@ function bezierCurve(from, to) {
     let midpointLatLng = [midpointY, midpointX];
     let pathOptions = { color: 'black', animate: 600, weight: 1 };
     return L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
-}
-
-/* Make sidebar draggable */
-
-function handleSidebarMouseMove(event) {
-
-    let sidebar = document.getElementById("sidebar");
-    sidebar.style.cursor = "move";
-    sidebar.style.position = 'relative';
-
-    let top = (event.clientY - 590);
-    if (top < -495) { top = -495; }
-    if (top > -5) { top = -5; }
-    sidebar.style.top = top + 'px';
-
-    let close = document.getElementById("closeButton");
-    close.style.position = 'relative';
-    close.style.top = top - 210 + 'px';
-    close.style.left = '-10px';
-}
-
-function sidebarMouseUp() {
-    window.removeEventListener('mousemove', handleSidebarMouseMove, true);
-}
-
-function sidebarMouseDown(e) {
-    window.addEventListener('mousemove', handleSidebarMouseMove, true);
 }

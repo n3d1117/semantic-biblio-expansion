@@ -127,6 +127,11 @@ i.right-arrow {
     cursor: pointer;
 }
 
+.record-smaller {
+    color: gray;
+    font-size: 12px;
+}
+
 .leaflet-popup-content p {
     margin: 10px 0;
 }
