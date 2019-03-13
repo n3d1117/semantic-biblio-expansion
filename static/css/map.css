@@ -229,7 +229,7 @@ ul {
 }
 
 #toggle-expansion-button:before {
-    background-image: url('../static/img/graph.png');
+    background-image: url('../img/graph.png');
 }
 
 #toggle-expansion-button.disabled {
@@ -287,28 +287,28 @@ ul {
     bottom: 0;
     left: 50%;
     margin-left: -20px;
-    background-image: url('../static/img/arrow-down.png');
+    background-image: url('../img/arrow-down.png');
 }
 
 .top-bouncing-arrow {
     top: 80px;
     left: 50%;
     margin-left: -20px;
-    background-image: url('../static/img/arrow-up.png');
+    background-image: url('../img/arrow-up.png');
 }
 
 .left-bouncing-arrow {
     left: 0;
     top: 50%;
     margin-top: 20px;
-    background-image: url('../static/img/arrow-left.png');
+    background-image: url('../img/arrow-left.png');
 }
 
 .right-bouncing-arrow {
     right: 0;
     top: 50%;
     margin-top: 20px;
-    background-image: url('../static/img/arrow-right.png');
+    background-image: url('../img/arrow-right.png');
 }
 
 .bounce {
