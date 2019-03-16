@@ -110,6 +110,21 @@ async function searchPlaces() {
     }
 }
 
+/* Autocomplete */
+
+$('#search').autocomplete({
+    groupBy: 'category',
+    triggerSelectOnValidInput: false,
+    lookup: function (query, done) {
+        axios.get(`/api/v1/autocomplete?q=${query}`).then(function(response) {
+            done(response.data);
+        });
+    },
+    onSelect: function() {
+        searchPlaces();
+    }
+});
+
 /* Markers */
 
 function generateMarkerForPlace(lat, long, place) {

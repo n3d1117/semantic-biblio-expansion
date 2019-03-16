@@ -216,6 +216,39 @@ def get_full_record():
     return jsonify(result)
 
 
+@app.route('/api/v1/autocomplete', methods=['GET'])
+def autocomplete():
+    query = request.args.get('q')
+    results = {'suggestions': []}
+
+    # Luoghi di pubblicazione
+    places = db.query_db('SELECT DISTINCT places.name FROM places WHERE name LIKE "%{}%" LIMIT 3'.format(query))
+    for p in places:
+        results['suggestions'].append({'value': p['name'], 'data': {'category': 'Luoghi di pubblicazione'}})
+
+    # Autori
+    authors = db.query_db('SELECT DISTINCT records.creator FROM records WHERE creator LIKE "%{}%" LIMIT 3'.format(query))
+    for a in authors:
+        results['suggestions'].append({'value': a['creator'], 'data': {'category': 'Autori'}})
+
+    # Entità
+    entities = db.query_db('SELECT DISTINCT entities.title FROM entities WHERE title LIKE "%{}%" LIMIT 3'.format(query))
+    for e in entities:
+        results['suggestions'].append({'value': e['title'], 'data': {'category': 'Entità'}})
+
+    # Soggetti
+    subjects = db.query_db('SELECT DISTINCT records.subject FROM records WHERE subject LIKE "%{}%" LIMIT 3'.format(query))
+    for s in subjects:
+        results['suggestions'].append({'value': s['subject'], 'data': {'category': 'Soggetti'}})
+
+    # Opere
+    books = db.query_db('SELECT DISTINCT records.title FROM records WHERE title LIKE "%{}%" LIMIT 3'.format(query))
+    for b in books:
+        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Opere'}})
+
+    return jsonify(results)
+
+
 @app.route('/init_db')
 def init_db():
     with app.app_context():

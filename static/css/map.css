@@ -322,3 +322,40 @@ ul {
 .bounce-left {
     animation: bounce-left 2s infinite;
 }
+
+/* Autocomplete */
+
+.autocomplete-suggestions {
+    overflow: auto;
+    border: 1px solid #CBD3DD;
+    background: #FFF;
+    border-radius: 5px;
+}
+
+.autocomplete-suggestion {
+    overflow: hidden;
+    padding: 5px 15px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 14px;
+}
+
+.autocomplete-selected {
+    background: #F0F0F0;
+    cursor: pointer;
+}
+
+.autocomplete-suggestions strong {
+    color: #029cca;
+    font-weight: normal;
+}
+
+.autocomplete-group {
+    padding: 2px 10px 2px;
+    display: block;
+    font-weight: bolder;
+    border-left: 1px solid #e2e2e2;
+    border-bottom: 1px solid #e2e2e2;
+    border-top: 1px solid #e2e2e2;
+    background-color: #f7f7f7;
+}
