@@ -5,6 +5,8 @@ import expand_records
 
 app = Flask(__name__)
 
+number_of_records_to_import = 2000
+
 
 @app.teardown_appcontext
 def close_connection(_):
@@ -34,7 +36,7 @@ def do_import():
 @app.route('/_import')
 def _import():
     init_db()
-    return Response(stream_with_context(import_records.do_import(2000)), mimetype='text/event-stream')
+    return Response(stream_with_context(import_records.do_import(number_of_records_to_import)), mimetype='text/event-stream')
 
 
 @app.route('/expand')

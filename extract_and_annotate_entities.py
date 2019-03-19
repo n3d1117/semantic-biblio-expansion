@@ -23,7 +23,6 @@ def clean(text):
 
 
 def get_birth_location_coords(person):
-    wikipedia.set_lang('it')
     url = 'https://query.wikidata.org/sparql'
     query = """
     SELECT DISTINCT ?item ?birthLocation ?birthLocationLabel ?coordinates WHERE {
@@ -43,7 +42,6 @@ def get_birth_location_coords(person):
 
 
 def get_business_location_coords(org):
-    wikipedia.set_lang('it')
     url = 'https://query.wikidata.org/sparql'
     query = """
     SELECT DISTINCT ?item ?place ?placeLabel ?coordinates WHERE {

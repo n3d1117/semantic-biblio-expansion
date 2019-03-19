@@ -316,6 +316,9 @@ function recordClicked(place_lat, place_long, geo_entities) {
 }
 
 function generateRecordInnerHTML(record, query) {
+
+    query = query.toLowerCase();
+
     if (record.title.toLowerCase().includes(query)) {
         return boldString(record.title, query);
     } else if (record.description.toLowerCase().includes(query)) {
@@ -345,7 +348,6 @@ function isDuplicate(marker) {
         if (layer instanceof L.Marker && !dupe) {
             if (layer.getLatLng().lat === marker.getLatLng().lat && layer.getLatLng().lng === marker.getLatLng().lng) {
                 if (layer.type === 'entity' && layer.data.name === marker.data.name) {
-                    console.log('duplicate ' + marker.data.name);
                     dupe = true;
                 }
             }
@@ -592,5 +594,6 @@ function bezierCurve(from, to) {
         midpointY = (r2 * Math.sin(theta2)) + from[0];
     let midpointLatLng = [midpointY, midpointX];
     let pathOptions = { color: 'black', animate: 600, weight: 1 };
-    return L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
+    let curve = L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
+    return curve;
 }
