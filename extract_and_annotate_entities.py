@@ -1,9 +1,9 @@
 import requests
-import spacy
+import it_core_news_sm
 import wikipedia
 from bs4 import BeautifulSoup
 
-nlp = spacy.load('it')
+nlp = it_core_news_sm.load()
 
 
 def author_cleanup(author):

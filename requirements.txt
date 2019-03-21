@@ -1,8 +1,8 @@
 lxml
-spacy
 beautifulsoup4
 wikipedia
 sickle
 flask
 gunicorn
+spacy
 https://github.com/explosion/spacy-models/releases/download/it_core_news_sm-2.1.0/it_core_news_sm-2.1.0.tar.gz
