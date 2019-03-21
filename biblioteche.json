@@ -1,0 +1,59 @@
+{
+  "biblioteche": [
+    {
+      "id": "CBRGL",
+      "name": "Biblioteca della Toscana Pietro Leopoldo - Consiglio reg. Toscana",
+      "coords": ""
+    },
+    {
+      "id": "CBR$GLBT",
+      "name": "Biblioteca dell'Identità Toscana del Consiglio Regionale",
+      "coords": ""
+    },
+    {
+      "id": "CBR$GLGR",
+      "name": "Biblioteca del Consiglio - Sezione Novoli",
+      "coords": "43.7906497,11.2246836"
+    },
+    {
+      "id": "CBRIR",
+      "name": "Biblioteca Giacomo Becattini IRPET",
+      "coords": "43.8122434,11.2409299"
+    },
+    {
+      "id": "CBRAA",
+      "name": "Biblioteca ARPAT",
+      "coords": "43.7823028,11.2314216"
+    },
+    {
+      "id": "CBRIO",
+      "name": "Biblioteca ISPO",
+      "coords": "43.8077209,11.2506835"
+    },
+    {
+      "id": "CBRSA",
+      "name": "Biblioteca Soprintendenza Archivistica per la Toscana",
+      "coords": "43.7755342,11.2540082"
+    },
+    {
+      "id": "CBRUC",
+      "name": "Biblioteca Unioncamere Toscana",
+      "coords": "43.784545,11.2573747"
+    },
+    {
+      "id": "CBRLD",
+      "name": "Centro di documentazione Cultura legalità democratica",
+      "coords": "43.7726839,11.2556113"
+    },
+    {
+      "id": "CBRAS",
+      "name": "Centro di documentazione dell'ARS della Toscana",
+      "coords": "43.8122434,11.2409299"
+    },
+    {
+      "id": "CBRCR",
+      "name": "Centro Rete",
+      "coords": "43.7751752,11.2480986"
+    }
+  ]
+}
