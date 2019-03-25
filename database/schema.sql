@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS expanded_records;
 DROP TABLE IF EXISTS entities;
 DROP TABLE IF EXISTS entity_for_record;
 DROP TABLE IF EXISTS places;
+DROP TABLE IF EXISTS biblios;
 
 CREATE TABLE records (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,7 +19,8 @@ CREATE TABLE records (
   format TEXT,
   relation TEXT,
   published_in TEXT,
-  link TEXT
+  link TEXT,
+  biblio TEXT
 );
 
 CREATE TABLE expanded_records (
@@ -47,6 +49,12 @@ CREATE TABLE entity_for_record (
 );
 
 CREATE TABLE places (
+  id TEXT PRIMARY KEY,
+  name TEXT,
+  coords TEXT
+);
+
+CREATE TABLE biblios (
   id TEXT PRIMARY KEY,
   name TEXT,
   coords TEXT

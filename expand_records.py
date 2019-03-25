@@ -49,6 +49,8 @@ def get_opere(viaf_id):
     for work in tree.findall('.//ns1:work', tree.nsmap):
         title = work.find('ns1:title', tree.nsmap).text
         opere.append(title)
+        if len(opere) > 4:
+            break
     return opere
 
 
@@ -107,7 +109,7 @@ def do_expand():
 
         print(' [*] text: {}'.format(text_to_extract_from))
 
-        entities = []#spacy_extract_entities(text_to_extract_from)
+        entities = spacy_extract_entities(text_to_extract_from)
         print(' [*] received entities: {}'.format(entities))
 
         annotated_entities = query_wikipedia(entities)

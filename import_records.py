@@ -19,6 +19,7 @@ def record2dict(r, place_id):
         'relation': r.metadata['relation'][0] if 'relation' in r.metadata else '',
         'published_in': place_id if place_id is not None else '',
         'link': 'https://web.e.toscana.it' + r.metadata['identifier'][0].split("http://localhost")[1],
+        'biblio': str(r.header).split('<setSpec>')[1].split('</setSpec>')[0]
     }
 
 
@@ -54,6 +55,19 @@ def get_page_id(place):
         return None
 
 
+def delete_extra():
+    db = database.get_db()
+    # elimina record aventi luogo di pubblicazione fuori dalla toscana
+    extr = ['36806', '1241244', '1010452', '2175049', '2318427', '2291823', '617150', '29082', '9028', '2588349',
+            '20444', '2084359', '8463', '19209', '2508155', '2951758', '108073', '34590', '2986', '2490247', '2949307',
+            '3467', '681231', '1291013', '28496', '3028', '1861131', '34448', '1141633', '17781', '660', '27675',
+            '2495945', '24689', '19145', '2134654', '31720', '2538987', '28987', '4466']
+    for e in extr:
+        db.execute("DELETE FROM places WHERE id={}".format(e))
+        db.execute("DELETE FROM records WHERE published_in={}".format(e))
+        db.commit()
+
+
 def do_import(max_num):
 
     x = 0
@@ -72,12 +86,13 @@ def do_import(max_num):
     array = []
     places = []
 
+    db.execute('delete from biblios')
     db.execute('delete from records')
     db.execute('delete from places')
     db.execute("delete from sqlite_sequence where name='records'")
 
-    query = "INSERT INTO records(title, subject, creator, contributor, date, description, language, publisher, type, format, relation, published_in, link)" \
-            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    query = "INSERT INTO records(title, subject, creator, contributor, date, description, language, publisher, type, format, relation, published_in, link, biblio)" \
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     query2 = "INSERT INTO places(id, name, coords) VALUES(?, ?, ?)"
 
     print(' [*] parsing first {} records...'.format(max_num))
@@ -112,9 +127,6 @@ def do_import(max_num):
                 elif luogo == 'San Vincenzo':
                     coords = '43.100134,10.540344'
                     place_id = '32495'
-                elif luogo == 'Genova':
-                    coords = '44.4264000,8.9151900'
-                    place_id = '2547618'
                 elif luogo == 'Monte Oriolo, Impruneta':
                     coords = '43.70869,11.25515'
                     place_id = '18487140'
@@ -134,7 +146,7 @@ def do_import(max_num):
                         d = record2dict(record, place_id)
                         array.append((d['title'].strip(), d['subject'], d['creator'], d['contributor'], d['date'],
                                       d['description'], d['language'], d['publisher'], d['type'], d['format'],
-                                      d['relation'],  d['published_in'], d['link']))
+                                      d['relation'],  d['published_in'], d['link'], d['biblio']))
                     else:
                         print('could not find page id for ' + luogo + ', skipping...')
                 else:
@@ -153,3 +165,4 @@ def do_import(max_num):
     db.commit()
 
     print(' [*] done!')
+

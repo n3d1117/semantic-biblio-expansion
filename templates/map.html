@@ -10,12 +10,13 @@
     <link rel="stylesheet" type="text/css" href="//unpkg.com/bootstrap/dist/css/bootstrap.min.css"/>
     <link rel="stylesheet" type="text/css" href="/static/css/leaflet.sidebar.css">
     <link rel="stylesheet" type="text/css" href="/static/css/map.css">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
 </head>
 
 <body>
 
     <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-        <a class="navbar-brand" href="/">semantic-biblio-expansion</a>
+        <a class="navbar-brand" href="/">Libri pubblicati in Toscana<small>Scopri il patrimonio culturale locale!</small></a>
 
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav mr-auto">
@@ -24,13 +25,13 @@
             </ul>
             <button class="btn btn-info my-2 my-sm-0 mr-2 disabled" id="toggle-expansion-button" type="button" data-toggle="tooltip" title="Attiva espansioni"></button>
             <form id="search-form" class="form-inline" onsubmit="searchPlaces()" action="#">
-                <input id ="search" class="form-control mr-sm-2" type="search" spellcheck="false" placeholder="Ricerca per luogo, titolo, autore, entità, soggetti..." aria-label="Search">
+                <input id ="search" class="form-control mr-sm-2" type="search" spellcheck="false" placeholder="Ricerca per luogo, titolo, autore, soggetti..." aria-label="Search">
                 <button class="btn btn-info my-2 my-sm-0" type="button" onclick="searchPlaces()">Cerca</button>
             </form>
         </div>
     </nav>
 
-    <div id="sidebar"></div>
+    <div id="sidebar" class="leaflet-sidebar collapsed"></div>
     <div id="map"></div>
 
     <script src="//unpkg.com/leaflet@1.4.0/dist/leaflet.js" integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg==" crossorigin=""></script>

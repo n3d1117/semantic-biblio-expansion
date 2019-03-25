@@ -1,14 +1,9 @@
 {
   "biblioteche": [
     {
-      "id": "CBRGL",
-      "name": "Biblioteca della Toscana Pietro Leopoldo - Consiglio reg. Toscana",
-      "coords": ""
-    },
-    {
       "id": "CBR$GLBT",
       "name": "Biblioteca dell'Identità Toscana del Consiglio Regionale",
-      "coords": ""
+      "coords": "43.7751752,11.2480986"
     },
     {
       "id": "CBR$GLGR",
@@ -51,8 +46,13 @@
       "coords": "43.8122434,11.2409299"
     },
     {
-      "id": "CBRCR",
-      "name": "Centro Rete",
+      "id": "CBRLC",
+      "name": "Biblioteca Luigi Crocetti",
+      "coords": "43.7740438,11.2575814"
+    },
+    {
+      "id": "CBRGL",
+      "name": "Biblioteca della Toscana Pietro Leopoldo - Consiglio Regione Toscana",
       "coords": "43.7751752,11.2480986"
     }
   ]

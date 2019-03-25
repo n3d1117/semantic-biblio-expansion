@@ -11,3 +11,10 @@
 	width: 60%;
 	margin: auto;
 }
+
+.navbar-brand small {
+	display: block;
+	font-size: 13px;
+	color: #ffc107;
+	margin-right: 2rem;
+}

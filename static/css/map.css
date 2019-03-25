@@ -1,6 +1,6 @@
 body {
     margin: 0;
-    height: calc(100% - 56px);
+    height: calc(100% - 75px);
 }
 
 html, #map {
@@ -13,6 +13,21 @@ img {
     margin-bottom: 7px;
 }
 
+.navbar-brand small {
+    display: block;
+    font-size: 13px;
+    color: #ffc107;
+    margin-right: 2rem;
+}
+
+.leaflet-sidebar-header {
+    background-color: #343a40;
+}
+
+.leaflet-sidebar-tabs > li > a, .leaflet-sidebar-tabs > ul > li > a {
+    background-color: #343a40;
+}
+
 #search {
     width: 500px;
 }
@@ -20,6 +35,13 @@ img {
 .marker-label {
     position: absolute;
     font-size: 13px;
+}
+
+.marker-label-longer {
+    position: absolute;
+    font-size: 13px;
+    white-space: normal;
+    width: 260px;
 }
 
 .scrollable {
@@ -58,6 +80,10 @@ img {
 }
 
 .hoverable:hover {
+    background-color: #e6e6e6;
+}
+
+.hoverable.is-active {
     background-color: #e6e6e6;
 }
 
@@ -136,10 +162,13 @@ i.right-arrow {
     margin: 10px 0;
 }
 
+.leaflet-sidebar-tabs {
+    background-color: #fefefe;
+}
+
 /* Legend specific */
-/* https://codepen.io/haakseth/pen/KQbjdO */
 .legend {
-    padding: 6px 8px;
+    padding: 6px 10px;
     font: 14px Arial, Helvetica, sans-serif;
     background: white;
     background: rgba(255, 255, 255, 0.8);
@@ -176,27 +205,42 @@ i.right-arrow {
 
 /* Sidebar specific */
 
-#sidebar {
-    user-select: none;
-}
-
 #sidebar h4 {
-    font-size: 16px;
-    margin-right: 20px;
-    padding-bottom: 5px;
-    padding-top: 5px;
+    font-size: 18px;
+    margin-top: 10px;
 }
 
 #sidebar p {
+    font-size: 14px;
     margin-bottom: 5px;
 }
 
-.leaflet-touch .leaflet-sidebar > .leaflet-control {
-    border-radius: 15px;
+#sidebar li {
+    font-size: 14px;
+    margin-bottom: 2px;
 }
 
 ul {
-    padding-left: 20px;
+    padding-left: 15px;
+}
+
+.leaflet-sidebar.collapsed {
+    width: 40px;
+    opacity: 0;
+}
+
+.leaflet-sidebar-pane.active {
+    padding-right: 5px;
+}
+
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+.leaflet-sidebar-right .leaflet-sidebar-header {
+    position: sticky;
+    top: 0;
 }
 
 /* Toggle expansion */
@@ -234,93 +278,6 @@ ul {
 
 #toggle-expansion-button.disabled {
     background-color: #ababab;
-}
-
-/* Bouncing arrow */
-
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-30px);
-    }
-    60% {
-        transform: translateY(-15px);
-    }
-}
-
-@keyframes bounce-right {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateX(0);
-    }
-    40% {
-        transform: translateX(-30px);
-    }
-    60% {
-        transform: translateX(-15px);
-    }
-}
-
-@keyframes bounce-left {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateX(0);
-    }
-    40% {
-        transform: translateX(30px);
-    }
-    60% {
-        transform: translateX(15px);
-    }
-}
-
-.arrow {
-    position: fixed;
-    width: 40px;
-    height: 40px;
-    z-index: 401;
-    cursor: pointer;
-    background-size: contain;
-}
-
-.bottom-bouncing-arrow {
-    bottom: 0;
-    left: 50%;
-    margin-left: -20px;
-    background-image: url('../img/arrow-down.png');
-}
-
-.top-bouncing-arrow {
-    top: 80px;
-    left: 50%;
-    margin-left: -20px;
-    background-image: url('../img/arrow-up.png');
-}
-
-.left-bouncing-arrow {
-    left: 0;
-    top: 50%;
-    margin-top: 20px;
-    background-image: url('../img/arrow-left.png');
-}
-
-.right-bouncing-arrow {
-    right: 0;
-    top: 50%;
-    margin-top: 20px;
-    background-image: url('../img/arrow-right.png');
-}
-
-.bounce {
-    animation: bounce 2s infinite;
-}
-
-.bounce-right {
-    animation: bounce-right 2s infinite;
-}
-
-.bounce-left {
-    animation: bounce-left 2s infinite;
 }
 
 /* Autocomplete */
