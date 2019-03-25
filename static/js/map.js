@@ -99,17 +99,14 @@ async function searchPlaces() {
             }
         });
 
-        setTimeout(function() {
-            layers = layers.filter(function (marker) {
-                return marker.type === 'entity' || !isEmpty(marker.data.geo_entities);
-            });
-            let group = L.featureGroup(layers);
-            map.fitBounds(group.getBounds(), { padding: L.point(40, 40) });
+        let group = L.featureGroup(layers);
+
+        setTimeout(function () {
+            map.fitBounds(group.getBounds(), {padding: L.point(40, 40)});
             setTimeout(function () {
                 group.addTo(map);
             }, 800);
         }, 500);
-
 
     } catch (error) {
         console.error(error);
@@ -570,7 +567,7 @@ function showBiblio(coords, lat, long, name) {
 
     let lat1 = Number(coords.split(',')[0]);
     let long1 = Number(coords.split(',')[1]);
-''
+
     let marker = generateMarkerForBiblio(lat1, long1, name);
     oms.addMarker(marker);
     bibliosLayers.push(marker);
@@ -607,15 +604,6 @@ function clickZoom(marker) {
         off2 = -off/2;
     }
     map.setViewOffset(marker.getLatLng(), [off2, offset]);
-}
-
-function isEmpty(obj) {
-    for (let prop in obj) {
-        if (obj.hasOwnProperty(prop))
-            return false;
-    }
-
-    return true;
 }
 
 function getRandomInt(min, max) {
