@@ -7,7 +7,7 @@ let osmUrl = 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
     additionalLayers = [],
     bibliosLayers = [];
 
-let map = L.map('map', { attributionControl: false, fadeAnimation: false }).setView(toscana, 9).addLayer(osm);
+let map = L.map('map', { maxZoom: 15, attributionControl: false, fadeAnimation: false }).setView(toscana, 9).addLayer(osm);
 
 let oms = new OverlappingMarkerSpiderfier(map, { keepSpiderfied: true, legWeight: 2 });
 
@@ -62,7 +62,8 @@ legend.onAdd = function() {
     let div = L.DomUtil.create("div", "legend");
     div.innerHTML += "<h4>Legenda</h4>";
     div.innerHTML += '<i class="icon" style="background-image: url(https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png);background-repeat: no-repeat;"></i><span>Luogo di pubblicazione</span><br>';
-    div.innerHTML += '<i class="icon" style="background-image: url(https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png);background-repeat: no-repeat;"></i><span>Approfondimento</span>';
+    div.innerHTML += '<i class="icon" style="background-image: url(https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png);background-repeat: no-repeat;"></i><span>Approfondimento</span><br>';
+    div.innerHTML += '<i class="icon bigger" style="background-image: url(/static/img/leaflet-biblio.png);background-repeat: no-repeat;"></i><span>Biblioteca</span>';
     return div;
 };
 legend.addTo(map);
@@ -82,7 +83,7 @@ async function searchPlaces() {
             let lat = Number(value.coords.split(',')[0]);
             let long = Number(value.coords.split(',')[1]);
 
-            if (value.type === 'place' || value.type === 'place_exact_match') {
+            if (value.type.includes('place')) {
                 let marker = generateMarkerForPlace(lat, long, value, value.type === 'place_exact_match');
                 marker.on('click', function() {
                     document.getElementById('sidebar').scrollTop = 0;
@@ -92,8 +93,8 @@ async function searchPlaces() {
             }
 
             // Show markers for entities too
-            if (value.type === 'entity') {
-                let marker = generateMarkerForEntity(lat, long, value);
+            if (value.type.includes('entity')) {
+                let marker = generateMarkerForEntity(lat, long, value, value.type === 'entity_exact_match');
                 layers.push(marker);
                 oms.addMarker(marker);
             }
@@ -102,9 +103,22 @@ async function searchPlaces() {
         let group = L.featureGroup(layers);
 
         setTimeout(function () {
-            map.fitBounds(group.getBounds(), {padding: L.point(40, 40)});
+            map.fitBounds(group.getBounds(), { padding: [150, 150] });
+
             setTimeout(function () {
                 group.addTo(map);
+
+                // Attiva automaticamente popup per marker esatti o se il risultato è uno solo
+                setTimeout(function() {
+                    let opened = false;
+                    layers.forEach(function (layer) {
+                        if (!opened && layer instanceof L.Marker && (layer.data.exact || layers.length === 1)) {
+                            opened = true;
+                            layer.openPopup();
+                        }
+                    })
+                }, 400);
+
             }, 800);
         }, 500);
 
@@ -137,7 +151,7 @@ function generateMarkerForPlace(lat, long, place, exact) {
     let rLoop = getRandomInt(2, 4);
 
     let marker = L.marker([lat, long], { icon: blueIcon, bounceOnAdd: true, bounceOnAddOptions: { duration: rDuration, height: rHeight, loop: rLoop } });
-    marker.data = { name: place.name, lat: lat, long: long, geo_entities: {}, full_records: {} };
+    marker.data = { name: place.name, lat: lat, long: long, geo_entities: {}, full_records: {}, exact: exact };
     marker.bindPopup();
     marker.bindTooltip(place.name, { className: "marker-label", direction: "right", offset: [15, -20] });
 
@@ -194,7 +208,8 @@ function generateMarkerForPlace(lat, long, place, exact) {
                 document.getElementById("biblio_coords_a").addEventListener("click", function() {
                     let coords = marker.data.full_records[record.record_id].biblio_coords;
                     let name = marker.data.full_records[record.record_id].biblio_name;
-                    showBiblio(coords, lat, long, name);
+                    let info = marker.data.full_records[record.record_id].biblio_info;
+                    showBiblio(coords, lat, long, name, info);
                 });
             };
 
@@ -223,9 +238,9 @@ function generateMarkerForPlace(lat, long, place, exact) {
     return marker;
 }
 
-function generateMarkerForEntity(lat, long, entity) {
+function generateMarkerForEntity(lat, long, entity, exact) {
     let marker = L.marker([lat, long], { icon: greenIcon, bounceOnAdd: true, bounceOnAddOptions: { duration: 1000, height: 70, loop: 3 } });
-    marker.data = { name: entity.title };
+    marker.data = { name: entity.title, exact: exact };
     marker.bindPopup();
     marker.bindTooltip(entity.title, { direction: "right", className: "marker-label", offset: [15, -20] });
 
@@ -268,7 +283,7 @@ function generateMarkerForEntity(lat, long, entity) {
     return marker;
 }
 
-function generateMarkerForBiblio(lat, long, name) {
+function generateMarkerForBiblio(lat, long, name, info) {
 
     let rDuration = getRandomInt(400, 700);
     let rHeight = getRandomInt(50, 70);
@@ -280,14 +295,30 @@ function generateMarkerForBiblio(lat, long, name) {
     });
     marker.data = { name: name };
     marker.bindPopup();
-    marker.bindTooltip(name, {className: name.split(' ').length > 6 ? "marker-label-longer" : "marker-label", direction: "left", offset: [-20, -15]});
+    marker.bindTooltip(name, {className: name.length > 30 ? "marker-label-longer" : "marker-label", direction: "left", offset: [-20, -15]});
 
     let div = document.createElement("div");
     div.className = "landmark";
-    div.style.width = '230px';
+    div.style.width = '300px';
 
     let title = div.appendChild(document.createElement("h1"));
     title.textContent = name;
+    title.style.fontSize = '15px';
+
+    let scrollable = div.appendChild(document.createElement("div"));
+    scrollable.className = "scrollable";
+
+    let section = scrollable.appendChild(document.createElement("section"));
+
+    let content = section.appendChild(document.createElement("p"));
+    content.style.wordBreak = 'break-word';
+    content.style.marginTop = '5px';
+    content.style.marginBottom = '7px';
+    content.innerHTML = info.split(' - ').slice(0, 2).join('<br>');
+    let link = info.split(' - ')[2];
+    let isMail = link.includes('@');
+    let href = isMail ? 'mailto:' + link : link;
+    content.innerHTML += `<br><a href='${href}'>${link}`;
 
     marker.setPopupContent(div);
     return marker;
@@ -317,14 +348,16 @@ function recordClicked(place_lat, place_long, geo_entities) {
     });
 
     let group = L.featureGroup(additionalLayers);
+    group.addTo(map);
 
-    let offset = document.querySelector('.leaflet-sidebar-content').getBoundingClientRect().width + 50;
+    // todo
+    /*let offset = document.querySelector('.leaflet-sidebar-content').getBoundingClientRect().width + 50;
     if (offset === 50) { offset = 450; }
-    map.fitBounds(group.getBounds(), {paddingTopLeft: [0, 170], paddingBottomRight: [offset, 100]});
-
+    map.fitBounds(group.getBounds(), {paddingTopLeft: [150, 200], paddingBottomRight: [offset, 150]});
     setTimeout(function () {
         group.addTo(map);
     }, 600);
+    */
 }
 
 function generateRecordInnerHTML(record, query) {
@@ -490,12 +523,16 @@ function appendLeftRightSidebarBiblioText(left, right, div) {
         bold = div.appendChild(document.createElement('strong')),
         left_text = document.createTextNode(left),
         right_text = document.createTextNode(right + ' '),
-        a = document.createElement("a");
+        a = document.createElement("a"),
+        span = document.createElement('span');
     a.href = '#';
     a.id = 'biblio_coords_a';
     a.textContent = '(vedi su mappa)';
 
-    bold.appendChild(left_text);
+    span.style.color = "red";
+    span.appendChild(left_text);
+
+    bold.appendChild(span);
     p.appendChild(bold);
     p.appendChild(right_text);
     p.appendChild(a);
@@ -558,7 +595,7 @@ function appendLeftRightSidebarEntitiesText(left, right, div) {
     p.appendChild(ul);
 }
 
-function showBiblio(coords, lat, long, name) {
+function showBiblio(coords, lat, long, name, info) {
 
     bibliosLayers.map(function (c) {
         c.remove();
@@ -568,7 +605,7 @@ function showBiblio(coords, lat, long, name) {
     let lat1 = Number(coords.split(',')[0]);
     let long1 = Number(coords.split(',')[1]);
 
-    let marker = generateMarkerForBiblio(lat1, long1, name);
+    let marker = generateMarkerForBiblio(lat1, long1, name, info);
     oms.addMarker(marker);
     bibliosLayers.push(marker);
 
@@ -577,11 +614,11 @@ function showBiblio(coords, lat, long, name) {
 
     let group = L.featureGroup(bibliosLayers);
 
-    let offset = document.querySelector('.leaflet-sidebar-content').getBoundingClientRect().width + 50;
+    let offset = document.querySelector('.leaflet-sidebar-content').getBoundingClientRect().width + 150;
     if (offset === 50) {
         offset = 450;
     }
-    map.fitBounds(group.getBounds(), {paddingTopLeft: [0, 150], paddingBottomRight: [offset, 80]});
+    map.fitBounds(group.getBounds(), {paddingTopLeft: [150, 180], paddingBottomRight: [offset, 200]});
 
     setTimeout(function () {
         group.addTo(map);
@@ -624,7 +661,7 @@ function bezierCurve(from, to, color, dash=false) {
     let midpointX = (r2 * Math.cos(theta2)) + from[1],
         midpointY = (r2 * Math.sin(theta2)) + from[0];
     let midpointLatLng = [midpointY, midpointX];
-    let pathOptions = { color: color, animate: 600, weight: 1, dashArray: dash ? 5 : 0 };
+    let pathOptions = { color: color, animate: 600, weight: 1.5, dashArray: dash ? 5 : 0 };
     let curve = L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
     return curve;
 }

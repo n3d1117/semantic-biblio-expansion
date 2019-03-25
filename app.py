@@ -107,7 +107,7 @@ def search():
         for e in entities:
             if e['coords'] != '':
                 response.append({
-                    'type': 'entity',
+                    'type': 'entity_exact_match' if e['title'].lower() == query.lower() else 'entity',
                     'entity_id': e['entity_id'],
                     'coords': e['coords'],
                     'title': e['title'],
@@ -180,7 +180,7 @@ def get_geo_entities_for_record():
 @app.route('/api/v1/get_full_record', methods=['GET'])
 def get_full_record():
     record_id = request.args.get('record_id')
-    record = db.query_db('SELECT r.*, p.name as luogo_pubblicazione, e.*, b.name as biblio_name, b.coords as biblio_coords '
+    record = db.query_db('SELECT r.*, p.name as luogo_pubblicazione, e.*, b.name as biblio_name, b.coords as biblio_coords, b.info as biblio_info '
                          'FROM records r, expanded_records e, places p, biblios b '
                          'WHERE e.id = r.id and r.published_in = p.id and b.id = r.biblio and r.id = {}'.format(record_id))
     result = {
@@ -204,6 +204,7 @@ def get_full_record():
         'author_wiki_info': record[0]['author_wiki_info'],
         'biblio_name': record[0]['biblio_name'],
         'biblio_coords': record[0]['biblio_coords'],
+        'biblio_info': record[0]['biblio_info'],
         'entities': []
     }
     entities = db.query_db('SELECT en.* FROM entity_for_record e, entities en '
@@ -248,7 +249,7 @@ def autocomplete():
     # Opere
     books = db.query_db('SELECT DISTINCT records.title FROM records WHERE title LIKE "%{}%" LIMIT 4'.format(query))
     for b in books:
-        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Opere'}})
+        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Libri'}})
 
     return jsonify(results)
 
@@ -261,21 +262,6 @@ def init_db():
             d.cursor().executescript(f.read())
         d.commit()
         return 'database initialized correctly!'
-
-
-# @app.route('/del')
-# def delete_extra():
-#     with app.app_context():
-#         d = db.get_db()
-#         # elimina record aventi luogo di pubblicazione fuori dalla toscana
-#         extr = ['36806', '1241244', '1010452', '2175049', '2318427', '2291823', '617150', '29082', '9028', '2588349',
-#                 '20444', '2084359', '8463', '19209', '2508155', '2951758', '108073', '34590', '2986', '2490247', '2949307',
-#                 '3467', '681231', '1291013', '28496', '3028', '1861131', '34448', '1141633', '17781', '660', '27675',
-#                 '2495945', '24689', '19145', '2134654', '31720', '2538987', '28987', '4466']
-#         for e in extr:
-#             d.execute("DELETE FROM places WHERE id={}".format(e))
-#             d.execute("DELETE FROM records WHERE published_in={}".format(e))
-#         d.commit()
 
 
 if __name__ == '__main__':

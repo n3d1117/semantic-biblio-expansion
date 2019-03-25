@@ -203,6 +203,12 @@ i.right-arrow {
     background-color: rgba(255, 255, 255, 0);
 }
 
+.legend i.icon.bigger {
+    margin-top: 2px;
+    background-size: 13px;
+    background-color: rgba(255, 255, 255, 0);
+}
+
 /* Sidebar specific */
 
 #sidebar h4 {

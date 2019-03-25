@@ -3,57 +3,62 @@
     {
       "id": "CBR$GLBT",
       "name": "Biblioteca dell'Identità Toscana del Consiglio Regionale",
-      "coords": "43.7751752,11.2480986"
+      "coords": "43.7751752,11.2480986",
+      "info": "Piazza dell'Unita' italiana 1 - 50123 Firenze - E-mail: bit@consiglio.regione.toscana.it"
     },
     {
       "id": "CBR$GLGR",
       "name": "Biblioteca del Consiglio - Sezione Novoli",
-      "coords": "43.7906497,11.2246836"
+      "coords": "43.7906497,11.2246836",
+      "info": "Via di Novoli 26 - 50127 Firenze (FI) - E-Mail: biblioteca@consiglio.regione.toscana.it"
     },
     {
       "id": "CBRIR",
       "name": "Biblioteca Giacomo Becattini IRPET",
-      "coords": "43.8122434,11.2409299"
+      "coords": "43.8122434,11.2409299",
+      "info": "Via Pietro Dazzi, 1 - 50141 Firenze (Italia) - Sito web: http://irpet.it/biblioteca"
     },
     {
       "id": "CBRAA",
       "name": "Biblioteca ARPAT",
-      "coords": "43.7823028,11.2314216"
-    },
-    {
-      "id": "CBRIO",
-      "name": "Biblioteca ISPO",
-      "coords": "43.8077209,11.2506835"
+      "coords": "43.7823028,11.2314216",
+      "info": "Via N. Porpora, 22 - 50144 Firenze - Sito web: http://arpat.toscana.it/urp/biblioteca"
     },
     {
       "id": "CBRSA",
       "name": "Biblioteca Soprintendenza Archivistica per la Toscana",
-      "coords": "43.7755342,11.2540082"
+      "coords": "43.7755342,11.2540082",
+      "info": "Via Ginori, 7 - 50123 Firenze FI - Sito web: http://www.archivi.beniculturali.it/archivi_old/safi/Sito/biblioteca.html"
     },
     {
       "id": "CBRUC",
       "name": "Biblioteca Unioncamere Toscana",
-      "coords": "43.784545,11.2573747"
+      "coords": "43.784545,11.2573747",
+      "info": "Via Lorenzo il Magnifico, 24 - 50129 Firenze - Sito web: http://www.tos.camcom.it"
     },
     {
       "id": "CBRLD",
       "name": "Centro di documentazione Cultura legalità democratica",
-      "coords": "43.7726839,11.2556113"
+      "coords": "43.7726839,11.2556113",
+      "info": "Piazza del Duomo 10 - 50122 Firenze - E-mail: cld@regione.toscana.it"
     },
     {
       "id": "CBRAS",
       "name": "Centro di documentazione dell'ARS della Toscana",
-      "coords": "43.8122434,11.2409299"
+      "coords": "43.8122434,11.2409299",
+      "info": "Via Pietro Dazzi, 1 - 50141 Firenze - E-mail: centrodocumentazione@ars.toscana.it"
     },
     {
       "id": "CBRLC",
       "name": "Biblioteca Luigi Crocetti",
-      "coords": "43.7740438,11.2575814"
+      "coords": "43.7740438,11.2575814",
+      "info": "Piazza Brunelleschi 4 - 50121 Firenze - E-mail: bibliotecacrocetti@regione.toscana.it"
     },
     {
       "id": "CBRGL",
       "name": "Biblioteca della Toscana Pietro Leopoldo - Consiglio Regione Toscana",
-      "coords": "43.7751752,11.2480986"
+      "coords": "43.7751752,11.2480986",
+      "info": "Piazza dell'Unità italiana, 1 - 50123 Firenze - E-mail: biblioteca@consiglio.regione.toscana.it"
     }
   ]
 }
