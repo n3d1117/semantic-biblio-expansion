@@ -348,16 +348,14 @@ function recordClicked(place_lat, place_long, geo_entities) {
     });
 
     let group = L.featureGroup(additionalLayers);
-    group.addTo(map);
+    //group.addTo(map);
 
-    // todo
-    /*let offset = document.querySelector('.leaflet-sidebar-content').getBoundingClientRect().width + 50;
+    let offset = document.querySelector('.leaflet-sidebar-content').getBoundingClientRect().width + 100;
     if (offset === 50) { offset = 450; }
     map.fitBounds(group.getBounds(), {paddingTopLeft: [150, 200], paddingBottomRight: [offset, 150]});
     setTimeout(function () {
         group.addTo(map);
     }, 600);
-    */
 }
 
 function generateRecordInnerHTML(record, query) {
@@ -499,13 +497,308 @@ function setSidebarContent(record) {
     }
 
     sidebar.removePanel('record-info');
+    sidebar.removePanel('related-info');
     sidebar.addPanel({
         id: 'record-info',
-        tab: '<i class="fa fa-bars"></i>',
+        tab: '<i class="fa fa-info" style="color: white"></i>',
         title: 'Informazioni <span class="leaflet-sidebar-close"></span>',
         pane: div.innerHTML,
     });
+    sidebar.addPanel({
+        id: 'related-info',
+        tab: '<i class="fa fa-filter" style="color: white"></i>',
+        title: 'Scopri libri correlati <span class="leaflet-sidebar-close"></span>',
+        pane: generateFiltersPane(record),
+    });
     sidebar.open('record-info');
+
+    document.getElementById("filter_submit").addEventListener("click", function (e) {
+        e.preventDefault();
+
+        let author = '';
+        if (document.getElementById("filter_autore") && document.getElementById("filter_autore").checked) {
+            author = record.creator;
+        }
+
+        let publisher = '';
+        if (document.getElementById("filter_casa_editrice") && document.getElementById("filter_casa_editrice").checked) {
+            publisher = record.publisher;
+        }
+
+        let arg_id = '';
+        if (document.getElementById("filter_args")) {
+            if (document.getElementById("filter_args").value !== 'Tutti gli argomenti') {
+                arg_id = document.getElementById("filter_args").value;
+            }
+        }
+
+        let date_1 = '';
+        let date_2 = '';
+        if (document.getElementById("filter_date1")) {
+            date_1 = document.getElementById("filter_date1").value;
+        }
+        if (document.getElementById("filter_date2")) {
+            date_2 = document.getElementById("filter_date2").value;
+        }
+        let rangeDate = '';
+        if (date_1 === '') {
+            if (date_2 === '') {
+                rangeDate = '';
+            } else {
+                rangeDate = '1912,' + date_2;
+            }
+        } else {
+            if (date_2 === '') {
+                rangeDate = date_1 + ',2009'
+            } else {
+                rangeDate = date_1 + ',' + date_2
+            }
+        }
+
+        axios.get(`/api/v1/related?author=${author}&publisher=${publisher}&arg_id=${arg_id}&dates=${rangeDate}`).then(function(response) {
+
+            let section = document.getElementById("filter_results_section");
+            section.innerHTML = '';
+
+            let resCount = 0;
+
+            response.data.forEach(function(r) {
+
+                if (record.id !== r.id) {
+                    let hoverable = section.appendChild(document.createElement("div"));
+                    hoverable.className = "hoverable res";
+
+                    let p = hoverable.appendChild(document.createElement("p"));
+                    p.className = `record-title res`;
+
+                    p.innerHTML = r.title + generateOtherText(r);
+                    p.onclick = function () {
+                    };
+
+                    let gap = section.appendChild(document.createElement("div"));
+                    gap.className = "gap";
+
+                    resCount++;
+                }
+            });
+
+            if (section.childElementCount === 0) {
+                document.getElementById("filter_results_title").textContent = "Nessun risultato trovato";
+            } else {
+                let ori = resCount === 1 ? ' risultato trovato:' : ' risultati trovati:';
+                document.getElementById("filter_results_title").textContent = resCount.toString() + ori;
+            }
+        });
+    });
+}
+
+function generateOtherText(r) {
+    let otherText0 = '';
+    if (r.biblio_name !== '') {
+        let n = r.biblio_name;
+        if (n.includes('Consiglio Regione Toscana')) {
+            n = n.split(' -')[0];
+        }
+        otherText0 = `Collocazione: ${n}`;
+    }
+
+    let otherText1 = '';
+    if (r.creator !== '') {
+        otherText1 = `Autore: ${r.creator.split(' <')[0]}`;
+    } else {
+        if (r.contributor !== '') {
+            otherText1 = `Autore secondario: ${r.contributor}`;
+        }
+    }
+
+    let otherText2 = '';
+    if (r.place_name !== '') {
+        otherText2 = `Pubblicato a: ${r.place_name}`;
+        if (r.publisher !== '') {
+            otherText2 += ` • Editore: ${r.publisher}`;
+            if (r.date !== '') {
+                otherText2 += ` • ${r.date}`;
+            }
+        } else {
+            if (r.publisher !== '') {
+                otherText2 = `Editore: ${r.publisher}`;
+                if (r.date !== '') {
+                    otherText2 += ` • ${r.date}`;
+                }
+            } else {
+                if (r.date !== '') {
+                    otherText2 = `Pubblicato nel ${r.date}`;
+                }
+            }
+        }
+    }
+
+    if (otherText0 !== '') {
+        if (otherText1 !== '') {
+            if (otherText2 !== '') {
+                return '<br>' + '<span class="record-smaller">' + otherText0 + '<br>' + otherText1 + '<br>' + otherText2 + '</span>';
+            } else {
+                return '<br>' + '<span class="record-smaller">' + otherText0 + '<br>' + otherText1 + '</span>';
+            }
+        } else {
+            if (otherText2 !== '') {
+                return '<br>' + '<span class="record-smaller">' + otherText0 + '<br>' + otherText2 + '</span>';
+            } else {
+                return '';
+            }
+        }
+    } else {
+        if (otherText1 !== '') {
+            if (otherText2 !== '') {
+                return '<br>' + '<span class="record-smaller">' + otherText1 + '<br>' + otherText2 + '</span>';
+            } else {
+                return '<br>' + '<span class="record-smaller">' + otherText1 + '</span>';
+            }
+        } else {
+            if (otherText2 !== '') {
+                return '<br>' + '<span class="record-smaller">' + otherText2 + '</span>';
+            } else {
+                return '';
+            }
+        }
+    }
+}
+
+function generateFiltersPane(record) {
+    let div = document.createElement("div");
+
+    let h4 = div.appendChild(document.createElement("h4"));
+    h4.textContent = "Filtri avanzati di ricerca";
+
+    let form = div.appendChild(document.createElement("form"));
+
+    if (record.creator !== '') {
+        createCheckbox('filter_autore', 'Ricerca libri di questo autore (' + record.creator.split(' <')[0] + ')', form);
+    }
+
+    if (record.publisher !== '') {
+        createCheckbox('filter_casa_editrice', 'Ricerca libri con questo editore (' + record.publisher.split(' <')[0] + ')', form);
+    }
+
+    if (record.entities.length > 0) {
+        createElenco('filter_args', record.entities, 'Tutti gli argomenti', 'Filtra per argomenti in comune:', form);
+    }
+
+    createDateInputs('filter_date1', 'filter_date2', 'Filtra per data di pubblicazione:', form);
+
+    createSubmitButton('filter_submit', 'Cerca', form);
+
+    let filter_results_title = div.appendChild(document.createElement("h4"));
+    filter_results_title.id = "filter_results_title";
+
+    let section = div.appendChild(document.createElement("section"));
+    section.id = "filter_results_section";
+
+    return div.innerHTML;
+}
+
+function createCheckbox(id, labl, div) {
+    let checkbox = document.createElement('input');
+    checkbox.type = "checkbox";
+    checkbox.name = id;
+    checkbox.value = id;
+    checkbox.id = id;
+    checkbox.style.marginRight = '8px';
+    checkbox.style.position = 'absolute';
+    checkbox.style.marginTop = '4px';
+
+    let label = document.createElement('label');
+    label.htmlFor = id;
+    label.style.fontSize = '14px';
+    label.style.marginLeft = '20px';
+    label.appendChild(document.createTextNode(labl));
+
+    div.appendChild(checkbox);
+    div.appendChild(label);
+    div.appendChild(document.createElement('br'));
+}
+
+function createElenco(id, args, def, labl, div) {
+    let select = document.createElement('select');
+    select.name = "args";
+    select.id = id;
+    select.style.marginLeft = '7px';
+
+    let option = document.createElement('option');
+    option.appendChild(document.createTextNode(def));
+    select.appendChild(option);
+
+    args.forEach(function(arg) {
+        let option = document.createElement('option');
+        option.value = arg.id;
+        option.appendChild(document.createTextNode(arg.title));
+        select.appendChild(option);
+    });
+
+    let label = document.createElement('label');
+    label.htmlFor = id;
+    label.style.fontSize = '14px';
+    label.appendChild(document.createTextNode(labl));
+
+    div.appendChild(label);
+    div.appendChild(select);
+    div.appendChild(document.createElement('br'));
+}
+
+function createSubmitButton(id, label, div, func) {
+
+    let submit = document.createElement('button');
+    submit.type = "submit";
+    submit.className = "btn btn-primary btn-sm";
+    submit.id = id;
+    submit.onclick = func;
+
+    submit.appendChild(document.createTextNode("Cerca"));
+
+    div.appendChild(submit);
+
+    div.appendChild(document.createElement('br'));
+    div.appendChild(document.createElement('br'));
+}
+
+function createDateInputs(id1, id2, label, div) {
+
+    let label0 = document.createElement('label');
+    label0.style.fontSize = '14px';
+    label0.appendChild(document.createTextNode(label));
+
+    let label1 = document.createElement('label');
+    label1.style.fontSize = '14px';
+    label1.style.marginLeft = '5px';
+    label1.style.marginRight = '5px';
+    label1.appendChild(document.createTextNode('da'));
+
+    let input1 = document.createElement('input');
+    input1.type = "text";
+    input1.name = id1;
+    input1.id = id1;
+    input1.placeholder = "1912";
+    input1.style.width = '40px';
+
+    let label2 = document.createElement('label');
+    label2.style.fontSize = '14px';
+    label2.style.marginLeft = '5px';
+    label2.style.marginRight = '5px';
+    label2.appendChild(document.createTextNode(' a '));
+
+    let input2 = document.createElement('input');
+    input2.type = "text";
+    input2.name = id2;
+    input2.id = id2;
+    input2.placeholder = "2009";
+    input2.style.width = '40px';
+
+    div.appendChild(label0);
+    div.appendChild(label1);
+    div.appendChild(input1);
+    div.appendChild(label2);
+    div.appendChild(input2);
+    div.appendChild(document.createElement('br'));
 }
 
 function appendLeftRightSidebarText(left, right, div) {
@@ -661,7 +954,7 @@ function bezierCurve(from, to, color, dash=false) {
     let midpointX = (r2 * Math.cos(theta2)) + from[1],
         midpointY = (r2 * Math.sin(theta2)) + from[0];
     let midpointLatLng = [midpointY, midpointX];
-    let pathOptions = { color: color, animate: 600, weight: 1.5, dashArray: dash ? 5 : 0 };
+    let pathOptions = { color: color, animate: 600, weight: 1, dashArray: dash ? 5 : 0 };
     let curve = L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
     return curve;
 }

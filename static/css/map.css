@@ -163,7 +163,7 @@ i.right-arrow {
 }
 
 .leaflet-sidebar-tabs {
-    background-color: #fefefe;
+    background-color: #fcfcfc;
 }
 
 /* Legend specific */
@@ -236,18 +236,18 @@ ul {
 }
 
 .leaflet-sidebar-pane.active {
-    padding-right: 5px;
+    padding-right: 15px;
 }
 
 ::-webkit-scrollbar {
-    width: 0px;
+    width: 0;
     background: transparent;
 }
 
-.leaflet-sidebar-right .leaflet-sidebar-header {
-    position: sticky;
-    top: 0;
-}
+/*.leaflet-sidebar-right .leaflet-sidebar-header {*/
+    /*position: sticky;*/
+    /*top: 0;*/
+/*}*/
 
 /* Toggle expansion */
 
@@ -321,4 +321,26 @@ ul {
     border-bottom: 1px solid #e2e2e2;
     border-top: 1px solid #e2e2e2;
     background-color: #f7f7f7;
+}
+
+/* Stuff */
+
+#sidebar li {
+    margin-bottom: 0;
+}
+
+form label {
+    margin-bottom: 0.8rem;
+}
+
+.leaflet-sidebar-pane.active > form {
+    margin-top: 15px;
+}
+
+.hoverable.res {
+    position: inherit;
+}
+
+.record-title.res {
+    padding-right: 0;
 }

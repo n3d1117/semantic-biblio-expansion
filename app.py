@@ -254,6 +254,47 @@ def autocomplete():
     return jsonify(results)
 
 
+@app.route('/api/v1/related', methods=['GET'])
+def related():
+    author = request.args.get('author')
+    publisher = request.args.get('publisher')
+    # date = request.args.get('date')
+    dates = request.args.get('dates')
+    arg_id = request.args.get('arg_id')
+
+    query = 'SELECT DISTINCT r.id, b.name as biblio_name, r.title, r.creator, r.date, r.contributor, r.publisher, p.name as place_name, p.coords ' \
+            'FROM records r, places p, biblios b ' \
+            'WHERE r.published_in = p.id AND b.id = r.biblio'
+
+    # Autore
+    if author is not None and author != '':
+        query += " AND (r.creator LIKE '{q}%' OR r.contributor LIKE '{q}%')".format(q=author)
+
+    # Editore
+    if publisher is not None and publisher != '':
+        query += " AND r.publisher LIKE '%{q}%'".format(q=publisher)
+
+    # Data
+    # if date is not None and date != '':
+    #     query += " AND r.date='{q}'".format(q=date)
+
+    # Data (da, a)
+    if dates is not None and len(dates.split(',')) == 2:
+        query += " AND r.date>={q1} AND r.date<={q2}".format(q1=dates.split(',')[0], q2=dates.split(',')[1])
+
+    # Argomento
+    if arg_id is not None and arg_id != '':
+        query += " AND r.id IN (SELECT DISTINCT en.record_id FROM entity_for_record en WHERE en.entity_id='{q}')".format(q=arg_id)
+
+    query += ' ORDER BY r.title'
+
+    print(query)
+
+    res = db.query_db(query)
+
+    return jsonify(res)
+
+
 @app.route('/init_db')
 def init_db():
     with app.app_context():
