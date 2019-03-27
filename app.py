@@ -28,6 +28,11 @@ def map_page():
     return render_template('map.html')
 
 
+@app.route('/map2')
+def map_page2():
+    return render_template('map2.html')
+
+
 @app.route('/import')
 def do_import():
     return send_file('templates/import_stream.html')
@@ -169,6 +174,86 @@ def search():
     return jsonify(response)
 
 
+@app.route('/api/v2/search', methods=['GET'])
+def search2():
+    query = request.args.get('q')
+    exp = request.args.get('expansions') == 'true'
+
+    response = []
+
+    # search query in entities and places if expansions are enabled
+    if exp:
+        entities = db.query_db('SELECT * FROM entities WHERE title LIKE "{q} %" OR title LIKE "% {q}" OR title LIKE "% {q} %" OR title LIKE "{q}"'.format(q=query))
+        for e in entities:
+            if e['coords'] != '':
+                response.append({
+                    'type': 'entity_exact_match' if e['title'].lower() == query.lower() else 'entity',
+                    'entity_id': e['entity_id'],
+                    'coords': e['coords'],
+                    'title': e['title'],
+                    'abstract': e['abstract'],
+                    'image_url': e['image_url'],
+                    'uri': e['uri']
+                })
+        # search query in places
+        places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))
+        for p in places:
+            response.append({
+                'type': 'place_exact_match' if p['name'].lower() == query.lower() else 'place',
+                'place_id': p['id'],
+                'coords': p['coords'],
+                'name': p['name']
+            })
+
+    # search query in records
+    records = db.query_db('SELECT r.id AS record_id, p.name as place_name, r.title, r.creator, r.contributor, r.publisher, r.date, b.id AS biblio_id '
+                          'FROM records r, biblios b, places p '
+                          'WHERE r.biblio = b.id AND r.published_in = p.id '
+                          'AND (r.title LIKE "%{q}%" OR r.subject LIKE "%{q}%" OR r.description LIKE "%{q}%" OR r.creator LIKE "%{q}%" OR r.contributor LIKE "%{q}%" OR r.publisher LIKE "%{q}%")'.format(q=query))
+
+    biblios = []
+    for r in records:
+        if r['biblio_id'] != '' and r['biblio_id'] not in biblios:
+            biblios.append(r['biblio_id'])
+
+    for biblio in biblios:
+
+        query_biblio = db.query_db('SELECT name, coords, info from biblios WHERE id="{}"'.format(biblio))
+
+        p_records = [r for r in records if r['biblio_id'] == biblio]
+
+        e_records = []
+        for r in p_records:
+            e_records.append({
+                'record_id': r['record_id'],
+                'title': r['title'],
+                'date': r['date'],
+                'publisher': r['publisher'],
+                'contributor': r['contributor'],
+                'creator': r['creator'],
+                'place_name': r['place_name']
+            })
+
+        if len(query_biblio) > 0 and len(e_records) > 0:
+
+            e = [r for r in response if 'biblio_id' in r and r['biblio_id'] == biblio]
+            if len(e) > 0:
+                # if biblio exists, append and remove duplicates
+                e[0]['records'] = [dict(t) for t in {tuple(d.items()) for d in (e[0]['records'] + e_records)}]
+            else:
+                # or else just append
+                response.append({
+                    'type': 'biblio',
+                    'biblio_id': biblio,
+                    'biblio_coords': query_biblio[0]['coords'],
+                    'biblio_name': query_biblio[0]['name'],
+                    'biblio_info': query_biblio[0]['info'],
+                    'records': e_records
+                })
+
+    return jsonify(response)
+
+
 @app.route('/api/v1/geo_entities_for_record', methods=['GET'])
 def get_geo_entities_for_record():
     record_id = request.args.get('record_id')
@@ -247,6 +332,41 @@ def autocomplete():
                 results['suggestions'].append({'value': e, 'data': {'category': 'Soggetti'}})
 
     # Opere
+    books = db.query_db('SELECT DISTINCT records.title FROM records WHERE title LIKE "%{}%" LIMIT 4'.format(query))
+    for b in books:
+        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Libri'}})
+
+    return jsonify(results)
+
+
+@app.route('/api/v2/autocomplete', methods=['GET'])
+def autocomplete2():
+    query = request.args.get('q')
+    results = {'suggestions': []}
+
+    # Autori
+    authors = db.query_db(
+        'SELECT DISTINCT records.creator FROM records WHERE creator LIKE "%{}%" LIMIT 4'.format(query))
+    for a in authors:
+        results['suggestions'].append({'value': a['creator'], 'data': {'category': 'Autori'}})
+
+    # Soggetti
+    added = []
+    subjects = db.query_db(
+        'SELECT DISTINCT records.subject FROM records WHERE subject LIKE "%{}%" LIMIT 4'.format(query))
+    for s in subjects:
+        d = s['subject'].split(' - ')
+        for e in d:
+            if query.lower() in e.lower() and e not in added:
+                added.append(e)
+                results['suggestions'].append({'value': e, 'data': {'category': 'Soggetti'}})
+
+    # Entità
+    books = db.query_db('SELECT DISTINCT title FROM entities WHERE title LIKE "%{}%" LIMIT 4'.format(query))
+    for b in books:
+        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Argomenti'}})
+
+    # Libri
     books = db.query_db('SELECT DISTINCT records.title FROM records WHERE title LIKE "%{}%" LIMIT 4'.format(query))
     for b in books:
         results['suggestions'].append({'value': b['title'], 'data': {'category': 'Libri'}})
