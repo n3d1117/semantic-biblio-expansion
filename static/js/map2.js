@@ -4,7 +4,8 @@ let osmUrl = 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
     toscana = [43.4148394, 11.2210621],
     layers = [],
     additionalLayers = [],
-    bibliosLayers = [];
+    openedInfoPanes = [],
+    infoCount = {};
 
 let map = L.map('map', {
     maxZoom: 15,
@@ -35,12 +36,9 @@ let biblioIcon = L.icon({
 });
 
 let form = document.getElementById("search-form");
-
-function handleForm(event) {
-    event.preventDefault();
-}
-
-form.addEventListener('submit', handleForm);
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+});
 
 let sidebar = L.control.sidebar({autopan: true, closeButton: true, container: 'sidebar', position: 'right'}).addTo(map);
 
@@ -75,13 +73,16 @@ legend.addTo(map);
 
 /* Search */
 
+let isSearching = false;
 async function searchPlaces() {
 
     clearAllLayers();
     let query = document.getElementById("search").value;
-    if (query === '') {
+    if (isSearching || query === '') {
         return false
     }
+
+    isSearching = true;
 
     try {
         const response = await axios.get(`/api/v2/search?q=${query}&expansions=${expansionsEnabled}`);
@@ -110,6 +111,8 @@ async function searchPlaces() {
             setTimeout(function () {
                 group.addTo(map);
 
+                isSearching = false;
+
                 // Attiva automaticamente popup per marker esatti o se il risultato è uno solo
                 setTimeout(function () {
                     let opened = false;
@@ -125,6 +128,7 @@ async function searchPlaces() {
         }, 500);
 
     } catch (error) {
+        isSearching = false;
         console.error(error);
     }
 }
@@ -146,7 +150,6 @@ $('#search').autocomplete({
 
 /* Markers */
 
-let openedInfoPanes= [];
 function generateNumberedBiblioMarker(biblio) {
 
     let coords = [Number(biblio.biblio_coords.split(',')[0]), Number(biblio.biblio_coords.split(',')[1])];
@@ -235,6 +238,66 @@ function generateNumberedBiblioMarker(biblio) {
     return [icon1, icon2];
 }
 
+function showPlaceOnMap(from_coords, to_coords, place_name) {
+
+    let lat1 = Number(from_coords.split(',')[0]);
+    let long1 = Number(from_coords.split(',')[1]);
+
+    let lat2 = Number(to_coords.split(',')[0]);
+    let long2 = Number(to_coords.split(',')[1]);
+
+    let marker = generateMarkerForPlace(lat2, long2, place_name);
+
+    layers = [];
+
+    if (!isDuplicate(marker, 'place')) {
+        oms.addMarker(marker);
+        additionalLayers.push(marker);
+        layers.push(marker);
+
+        let curve = bezierCurve([lat1, long1], [lat2, long2], 'black');
+        additionalLayers.push(curve);
+        layers.push(curve);
+
+        let group = L.featureGroup(layers);
+
+        map.fitBounds(group.getBounds(), {paddingTopLeft: [150, 200], paddingBottomRight: [470, 200]});
+        setTimeout(function () {
+            group.addTo(map);
+        }, 600);
+    }
+}
+
+function showEntityOnMap(biblio_coords, entity) {
+
+    let lat1 = Number(biblio_coords.split(',')[0]);
+    let long1 = Number(biblio_coords.split(',')[1]);
+
+    let lat2 = Number(entity.coords.split(',')[0]);
+    let long2 = Number(entity.coords.split(',')[1]);
+
+    let marker = generateMarkerForEntity(lat2, long2, entity);
+
+    layers = [];
+
+    if (!isDuplicate(marker, 'entity')) {
+        oms.addMarker(marker);
+        additionalLayers.push(marker);
+        layers.push(marker);
+
+        let curve = bezierCurve([lat1, long1], [lat2, long2], 'black');
+        additionalLayers.push(curve);
+        layers.push(curve);
+
+        let group = L.featureGroup(layers);
+
+        map.fitBounds(group.getBounds(), {paddingTopLeft: [150, 200], paddingBottomRight: [450, 180]});
+        setTimeout(function () {
+            group.addTo(map);
+        }, 600);
+    }
+}
+
 function generateMarkerForEntity(lat, long, entity, exact) {
     let marker = L.marker([lat, long], {
         icon: greenIcon,
@@ -284,6 +347,18 @@ function generateMarkerForEntity(lat, long, entity, exact) {
     return marker;
 }
 
+function generateMarkerForPlace(lat, long, name) {
+    let marker = L.marker([lat, long], {
+        icon: blueIcon,
+        bounceOnAdd: true,
+        bounceOnAddOptions: {duration: 1000, height: 70, loop: 3}
+    });
+    marker.bindTooltip(name, {direction: "right", className: "marker-label", offset: [15, -20]});
+    marker.type = 'place';
+    marker.data = {name: name};
+    return marker;
+}
+
 /* Sidebar */
 
 function generateSidebarBiblioContent(biblio) {
@@ -296,7 +371,8 @@ function generateSidebarBiblioContent(biblio) {
 
     let section = div.appendChild(document.createElement("section"));
     let resCount = 0;
-    let infoCount = {};
+
+    infoCount = {};
 
     biblio.records.forEach(function (r) {
         let hoverable = section.appendChild(document.createElement("div"));
@@ -309,35 +385,7 @@ function generateSidebarBiblioContent(biblio) {
         p.innerHTML = boldString(r.title + generateOtherText(r), query);
 
         $(document).on('click', '#' + r.record_id, function() {
-
-            axios.get(`/api/v1/get_full_record?record_id=${r.record_id}`).then(function (response) {
-                let id = 'info-' + r.record_id;
-
-                if (!openedInfoPanes.includes(id)) {
-                    openedInfoPanes.push(id);
-                }
-
-                if (infoCount[r.record_id] === undefined) {
-                    infoCount[r.record_id] = openedInfoPanes.length;
-                }
-
-                resetSidebarScroll();
-
-                sidebar.removePanel(id);
-                sidebar.addPanel({
-                    id: id,
-                    tab: `<i class="fa fa-info" style="color: white"><span class="fa-tab-icon-number-small">${infoCount[r.record_id]}</span></i>`,
-                    title: 'Informazioni <span class="leaflet-sidebar-close"></span>',
-                    pane: generateSidebarRecordContent(response.data),
-                });
-                sidebar.open(id);
-
-                additionalLayers.map(function (c) {
-                    c.remove();
-                });
-                additionalLayers = [];
-
-            });
+            fetchRelatedRecordAndPushPanel(r.record_id);
         });
 
         let i = p.appendChild(document.createElement("i"));
@@ -392,7 +440,11 @@ function generateSidebarRecordContent(record) {
         appendLeftRightSidebarTextWithHref('Link: ', record.link, div, record.link);
     }
     if (record.published_in !== '') {
-        appendLeftRightSidebarText('Luogo di pubblicazione: ', record.published_in, div);
+        if (record.published_in !== 'Firenze') {
+            appendLeftRightSidebarTextWithMapLink('Luogo di pubblicazione: ', record.published_in, record.id, record.biblio_coords, record.published_in_coords, div);
+        } else {
+            appendLeftRightSidebarText('Luogo di pubblicazione: ', record.published_in, div);
+        }
     }
     if (record.publisher !== '') {
         appendLeftRightSidebarText('Editore: ', record.publisher, div);
@@ -426,6 +478,404 @@ function generateSidebarRecordContent(record) {
 
     return div.innerHTML;
 }
+
+function appendLeftRightSidebarText(left, right, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left),
+        right_text = document.createTextNode(right);
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(right_text);
+}
+
+function appendLeftRightSidebarTextWithMapLink(left, right, record_id, from_coords, to_coords, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left),
+        right_text = document.createTextNode(right + ' ');
+
+    let a2 = document.createElement("a");
+    a2.href = '#';
+    a2.id = 'show_place_' + record_id;
+    a2.textContent = '(vedi su mappa)';
+    a2.style.color = "#ad0000";
+
+    a2.appendChild(document.createTextNode('\u00A0'));
+    let img = a2.appendChild(document.createElement("img"));
+    img.setAttribute("src", "https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png");
+    img.setAttribute("height", "15px");
+    img.style.marginLeft = '3px';
+    img.style.marginBottom = '2px';
+
+    $(document).on('click', '#' + 'show_place_' + record_id, function () {
+        showPlaceOnMap(from_coords, to_coords, right);
+    });
+
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(right_text);
+    p.appendChild(a2);
+}
+
+function appendLeftRightSidebarBiblioText(left, right, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left),
+        right_text = document.createTextNode(right + ' '),
+        span = document.createElement('span');
+
+    span.style.color = "red";
+    span.appendChild(left_text);
+
+    bold.appendChild(span);
+    p.appendChild(bold);
+    p.appendChild(right_text);
+}
+
+function appendLeftRightSidebarTextWithHref(left, right, div, uri) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left);
+
+    let a = document.createElement("a");
+    a.href = uri;
+    a.target = "_blank";
+    a.textContent = right;
+
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(a);
+}
+
+function appendLeftRightSidebarArrayText(left, right, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left);
+
+    let ul = document.createElement("ul");
+    right.forEach(function (value) {
+        let li = document.createElement("li");
+        li.textContent = value;
+        ul.appendChild(li);
+    });
+
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(ul);
+}
+
+function appendLeftRightSidebarEntitiesText(left, right, biblio_coords, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left);
+
+    let ul = document.createElement("ul");
+    right.forEach(function (entity) {
+        let li = document.createElement("li");
+
+        let a = li.appendChild(document.createElement("a"));
+        a.href = entity.uri;
+        a.target = "_blank";
+        a.textContent = entity.title;
+
+        let a2 = document.createElement("a");
+        a2.href = '#';
+        a2.id = 'show_' + entity.id;
+        a2.textContent = '(vedi su mappa)';
+        a2.style.color = "#ad0000";
+
+        a2.appendChild(document.createTextNode('\u00A0'));
+        let img = a2.appendChild(document.createElement("img"));
+        img.setAttribute("src", "https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png");
+        img.setAttribute("height", "15px");
+        img.style.marginLeft = '3px';
+        img.style.marginBottom = '2px';
+
+        a.appendChild(document.createTextNode('\u00A0'));
+        a.appendChild(a2);
+
+        let p = li.appendChild(document.createElement("p"));
+        p.textContent = entity.abstract;
+
+        ul.appendChild(li);
+
+        $(document).on('click', '#' + 'show_' + entity.id, function () {
+            showEntityOnMap(biblio_coords, entity);
+        });
+    });
+
+    bold.appendChild(left_text);
+    p.appendChild(bold);
+    p.appendChild(ul);
+}
+
+
+/* Filters */
+
+function generateFiltersPane(record) {
+    let div = document.createElement("div");
+
+    let h4 = div.appendChild(document.createElement("h3"));
+    h4.textContent = "Filtri avanzati di ricerca";
+
+    let form = div.appendChild(document.createElement("form"));
+
+    if (record.creator !== '') {
+        createCheckbox('filter_autore_' + record.id, 'Ricerca libri di questo autore (' + record.creator.split(' <')[0] + ')', form);
+    }
+
+    if (record.publisher !== '') {
+        createCheckbox('filter_casa_editrice_' + record.id, 'Ricerca libri di questo editore (' + record.publisher.split(' <')[0] + ')', form);
+    }
+
+    if (record.entities.length > 0) {
+        createElenco('filter_args_' + record.id, record.entities, 'Tutti gli argomenti', 'Filtra per argomenti in comune:', form);
+    }
+
+    createDateInputs('filter_date1_' + record.id, 'filter_date2_' + record.id, 'Filtra per data di pubblicazione:', form);
+
+    createSubmitButton('filter_submit_' + record.id, 'Cerca', form);
+
+    let filter_results_title = div.appendChild(document.createElement("h4"));
+    filter_results_title.id = "filter_results_title_" + record.id;
+
+    let section = div.appendChild(document.createElement("section"));
+    section.id = "filter_results_section_" + record.id;
+
+    $(document).on('click', '#filter_submit_' + record.id, function (e) {
+        e.preventDefault();
+
+        let author = '';
+        if (document.getElementById("filter_autore_" + record.id) && document.getElementById("filter_autore_" + record.id).checked) {
+            author = record.creator;
+        }
+
+        let publisher = '';
+        if (document.getElementById("filter_casa_editrice_" + record.id) && document.getElementById("filter_casa_editrice_" + record.id).checked) {
+            publisher = record.publisher;
+        }
+
+        let arg_id = '';
+        if (document.getElementById("filter_args_" + record.id)) {
+            if (document.getElementById("filter_args_" + record.id).value !== 'Tutti gli argomenti') {
+                arg_id = document.getElementById("filter_args_" + record.id).value;
+            }
+        }
+
+        let date_1 = '';
+        let date_2 = '';
+        if (document.getElementById("filter_date1_" + record.id)) {
+            date_1 = document.getElementById("filter_date1_" + record.id).value;
+        }
+        if (document.getElementById("filter_date2_" + record.id)) {
+            date_2 = document.getElementById("filter_date2_" + record.id).value;
+        }
+        let rangeDate = '';
+        if (date_1 === '') {
+            if (date_2 === '') {
+                rangeDate = '';
+            } else {
+                rangeDate = '1912,' + date_2;
+            }
+        } else {
+            if (date_2 === '') {
+                rangeDate = date_1 + ',2009'
+            } else {
+                rangeDate = date_1 + ',' + date_2
+            }
+        }
+
+        axios.get(`/api/v1/related?author=${author}&publisher=${publisher}&arg_id=${arg_id}&dates=${rangeDate}`).then(function (response) {
+
+            let section = document.getElementById("filter_results_section_" + record.id);
+            section.innerHTML = '';
+
+            let resCount = 0;
+
+            response.data.forEach(function (r) {
+
+                if (record.id !== r.id) {
+                    let hoverable = section.appendChild(document.createElement("div"));
+                    hoverable.className = "hoverable res";
+
+                    let p = hoverable.appendChild(document.createElement("p"));
+                    p.className = `record-title res`;
+
+                    p.innerHTML = r.title + generateOtherTextWithBiblio(r);
+                    p.onclick = function () {
+                        fetchRelatedRecordAndPushPanel(r.id);
+                    };
+
+                    let gap = section.appendChild(document.createElement("div"));
+                    gap.className = "gap";
+
+                    resCount++;
+                }
+            });
+
+            if (section.childElementCount === 0) {
+                document.getElementById("filter_results_title_" + record.id).textContent = "Nessun risultato trovato";
+            } else {
+                let ori = resCount === 1 ? ' risultato trovato:' : ' risultati trovati:';
+                document.getElementById("filter_results_title_" + record.id).textContent = resCount.toString() + ori;
+            }
+        });
+    });
+
+    return div;
+}
+
+function fetchRelatedRecordAndPushPanel(record_id) {
+    axios.get(`/api/v1/get_full_record?record_id=${record_id}`).then(function (newRecord) {
+        let id = 'info-' + record_id;
+
+        if (!openedInfoPanes.includes(id)) {
+            openedInfoPanes.push(id);
+        }
+
+        if (infoCount[record_id] === undefined) {
+            infoCount[record_id] = openedInfoPanes.length;
+        }
+
+        sidebar.removePanel(id);
+        sidebar.addPanel({
+            id: id,
+            tab: `<i class="fa fa-info" style="color: white"><span class="fa-tab-icon-number-small">${infoCount[record_id]}</span></i>`,
+            title: 'Informazioni <span class="leaflet-sidebar-close"></span>',
+            pane: generateSidebarRecordContent(newRecord.data),
+        });
+        sidebar.open(id);
+
+        resetSidebarScroll();
+
+        additionalLayers.map(function (c) {
+            c.remove();
+        });
+        additionalLayers = [];
+
+    });
+}
+
+function createCheckbox(id, labl, div) {
+    let checkbox = document.createElement('input');
+    checkbox.type = "checkbox";
+    checkbox.name = id;
+    checkbox.value = id;
+    checkbox.id = id;
+    checkbox.style.marginRight = '8px';
+    checkbox.style.position = 'absolute';
+    checkbox.style.marginTop = '4px';
+
+    let label = document.createElement('label');
+    label.htmlFor = id;
+    label.style.fontSize = '14px';
+    label.style.marginLeft = '20px';
+    label.appendChild(document.createTextNode(labl));
+
+    div.appendChild(checkbox);
+    div.appendChild(label);
+    div.appendChild(document.createElement('br'));
+}
+
+function createElenco(id, args, def, labl, div) {
+    let select = document.createElement('select');
+    select.name = "args";
+    select.id = id;
+    select.style.marginLeft = '7px';
+
+    let option = document.createElement('option');
+    option.appendChild(document.createTextNode(def));
+    select.appendChild(option);
+
+    args.forEach(function (arg) {
+        let option = document.createElement('option');
+        option.value = arg.id;
+        option.appendChild(document.createTextNode(arg.title));
+        select.appendChild(option);
+    });
+
+    let label = document.createElement('label');
+    label.htmlFor = id;
+    label.style.fontSize = '14px';
+    label.appendChild(document.createTextNode(labl));
+
+    div.appendChild(label);
+    div.appendChild(select);
+    div.appendChild(document.createElement('br'));
+}
+
+function createSubmitButton(id, label, div, func) {
+
+    let submit = document.createElement('button');
+    submit.type = "submit";
+    submit.className = "btn btn-primary btn-sm";
+    submit.id = id;
+    submit.onclick = func;
+
+    submit.appendChild(document.createTextNode("Cerca"));
+
+    div.appendChild(submit);
+
+    div.appendChild(document.createElement('br'));
+    div.appendChild(document.createElement('br'));
+}
+
+function createDateInputs(id1, id2, label, div) {
+
+    let label0 = document.createElement('label');
+    label0.style.fontSize = '14px';
+    label0.appendChild(document.createTextNode(label));
+
+    let label1 = document.createElement('label');
+    label1.style.fontSize = '14px';
+    label1.style.marginLeft = '5px';
+    label1.style.marginRight = '5px';
+    label1.appendChild(document.createTextNode('da'));
+
+    let input1 = document.createElement('input');
+    input1.type = "text";
+    input1.name = id1;
+    input1.id = id1;
+    input1.placeholder = "1912";
+    input1.style.width = '40px';
+
+    let label2 = document.createElement('label');
+    label2.style.fontSize = '14px';
+    label2.style.marginLeft = '5px';
+    label2.style.marginRight = '5px';
+    label2.appendChild(document.createTextNode(' a '));
+
+    let input2 = document.createElement('input');
+    input2.type = "text";
+    input2.name = id2;
+    input2.id = id2;
+    input2.placeholder = "2009";
+    input2.style.width = '40px';
+
+    div.appendChild(label0);
+    div.appendChild(label1);
+    div.appendChild(input1);
+    div.appendChild(label2);
+    div.appendChild(input2);
+    div.appendChild(document.createElement('br'));
+}
+
+/* Coordinates */
+
+L.Map.prototype.setViewOffset = function (latlng, offset) {
+    let targetPoint = this.project(latlng, this.getZoom()).subtract(offset),
+        targetLatLng = this.unproject(targetPoint, this.getZoom());
+    return this.panTo(targetLatLng, this.getZoom());
+};
+
+function clickZoom(marker) {
+    let offset = map.getZoom() <= 9 ? 80 : 60;
+    map.setViewOffset(marker.getLatLng(), [-210, offset]);
+}
+
+
+/* Utils */
 
 function generateOtherText(r) {
 
@@ -547,371 +997,12 @@ function generateOtherTextWithBiblio(r) {
     }
 }
 
-function generateFiltersPane(record) {
-    let div = document.createElement("div");
-
-    let h4 = div.appendChild(document.createElement("h3"));
-    h4.textContent = "Filtri avanzati di ricerca";
-
-    let form = div.appendChild(document.createElement("form"));
-
-    if (record.creator !== '') {
-        createCheckbox('filter_autore', 'Ricerca libri di questo autore (' + record.creator.split(' <')[0] + ')', form);
-    }
-
-    if (record.publisher !== '') {
-        createCheckbox('filter_casa_editrice', 'Ricerca libri di questo editore (' + record.publisher.split(' <')[0] + ')', form);
-    }
-
-    if (record.entities.length > 0) {
-        createElenco('filter_args', record.entities, 'Tutti gli argomenti', 'Filtra per argomenti in comune:', form);
-    }
-
-    createDateInputs('filter_date1', 'filter_date2', 'Filtra per data di pubblicazione:', form);
-
-    createSubmitButton('filter_submit', 'Cerca', form);
-
-    let filter_results_title = div.appendChild(document.createElement("h4"));
-    filter_results_title.id = "filter_results_title";
-
-    let section = div.appendChild(document.createElement("section"));
-    section.id = "filter_results_section";
-
-    $(document).on('click', '#filter_submit', function (e) {
-        e.preventDefault();
-
-        let author = '';
-        if (document.getElementById("filter_autore") && document.getElementById("filter_autore").checked) {
-            author = record.creator;
-        }
-
-        let publisher = '';
-        if (document.getElementById("filter_casa_editrice") && document.getElementById("filter_casa_editrice").checked) {
-            publisher = record.publisher;
-        }
-
-        let arg_id = '';
-        if (document.getElementById("filter_args")) {
-            if (document.getElementById("filter_args").value !== 'Tutti gli argomenti') {
-                arg_id = document.getElementById("filter_args").value;
-            }
-        }
-
-        let date_1 = '';
-        let date_2 = '';
-        if (document.getElementById("filter_date1")) {
-            date_1 = document.getElementById("filter_date1").value;
-        }
-        if (document.getElementById("filter_date2")) {
-            date_2 = document.getElementById("filter_date2").value;
-        }
-        let rangeDate = '';
-        if (date_1 === '') {
-            if (date_2 === '') {
-                rangeDate = '';
-            } else {
-                rangeDate = '1912,' + date_2;
-            }
-        } else {
-            if (date_2 === '') {
-                rangeDate = date_1 + ',2009'
-            } else {
-                rangeDate = date_1 + ',' + date_2
-            }
-        }
-
-        axios.get(`/api/v1/related?author=${author}&publisher=${publisher}&arg_id=${arg_id}&dates=${rangeDate}`).then(function (response) {
-
-            let section = document.getElementById("filter_results_section");
-            section.innerHTML = '';
-
-            let resCount = 0;
-
-            response.data.forEach(function (r) {
-
-                if (record.id !== r.id) {
-                    let hoverable = section.appendChild(document.createElement("div"));
-                    hoverable.className = "hoverable res";
-
-                    let p = hoverable.appendChild(document.createElement("p"));
-                    p.className = `record-title res`;
-
-                    p.innerHTML = r.title + generateOtherTextWithBiblio(r);
-                    p.onclick = function () {
-                    };
-
-                    let gap = section.appendChild(document.createElement("div"));
-                    gap.className = "gap";
-
-                    resCount++;
-                }
-            });
-
-            if (section.childElementCount === 0) {
-                document.getElementById("filter_results_title").textContent = "Nessun risultato trovato";
-            } else {
-                let ori = resCount === 1 ? ' risultato trovato:' : ' risultati trovati:';
-                document.getElementById("filter_results_title").textContent = resCount.toString() + ori;
-            }
-        });
-    });
-
-    return div;
-}
-
-function createCheckbox(id, labl, div) {
-    let checkbox = document.createElement('input');
-    checkbox.type = "checkbox";
-    checkbox.name = id;
-    checkbox.value = id;
-    checkbox.id = id;
-    checkbox.style.marginRight = '8px';
-    checkbox.style.position = 'absolute';
-    checkbox.style.marginTop = '4px';
-
-    let label = document.createElement('label');
-    label.htmlFor = id;
-    label.style.fontSize = '14px';
-    label.style.marginLeft = '20px';
-    label.appendChild(document.createTextNode(labl));
-
-    div.appendChild(checkbox);
-    div.appendChild(label);
-    div.appendChild(document.createElement('br'));
-}
-
-function createElenco(id, args, def, labl, div) {
-    let select = document.createElement('select');
-    select.name = "args";
-    select.id = id;
-    select.style.marginLeft = '7px';
-
-    let option = document.createElement('option');
-    option.appendChild(document.createTextNode(def));
-    select.appendChild(option);
-
-    args.forEach(function (arg) {
-        let option = document.createElement('option');
-        option.value = arg.id;
-        option.appendChild(document.createTextNode(arg.title));
-        select.appendChild(option);
-    });
-
-    let label = document.createElement('label');
-    label.htmlFor = id;
-    label.style.fontSize = '14px';
-    label.appendChild(document.createTextNode(labl));
-
-    div.appendChild(label);
-    div.appendChild(select);
-    div.appendChild(document.createElement('br'));
-}
-
-function createSubmitButton(id, label, div, func) {
-
-    let submit = document.createElement('button');
-    submit.type = "submit";
-    submit.className = "btn btn-primary btn-sm";
-    submit.id = id;
-    submit.onclick = func;
-
-    submit.appendChild(document.createTextNode("Cerca"));
-
-    div.appendChild(submit);
-
-    div.appendChild(document.createElement('br'));
-    div.appendChild(document.createElement('br'));
-}
-
-function createDateInputs(id1, id2, label, div) {
-
-    let label0 = document.createElement('label');
-    label0.style.fontSize = '14px';
-    label0.appendChild(document.createTextNode(label));
-
-    let label1 = document.createElement('label');
-    label1.style.fontSize = '14px';
-    label1.style.marginLeft = '5px';
-    label1.style.marginRight = '5px';
-    label1.appendChild(document.createTextNode('da'));
-
-    let input1 = document.createElement('input');
-    input1.type = "text";
-    input1.name = id1;
-    input1.id = id1;
-    input1.placeholder = "1912";
-    input1.style.width = '40px';
-
-    let label2 = document.createElement('label');
-    label2.style.fontSize = '14px';
-    label2.style.marginLeft = '5px';
-    label2.style.marginRight = '5px';
-    label2.appendChild(document.createTextNode(' a '));
-
-    let input2 = document.createElement('input');
-    input2.type = "text";
-    input2.name = id2;
-    input2.id = id2;
-    input2.placeholder = "2009";
-    input2.style.width = '40px';
-
-    div.appendChild(label0);
-    div.appendChild(label1);
-    div.appendChild(input1);
-    div.appendChild(label2);
-    div.appendChild(input2);
-    div.appendChild(document.createElement('br'));
-}
-
-function appendLeftRightSidebarText(left, right, div) {
-    let p = div.appendChild(document.createElement("p")),
-        bold = div.appendChild(document.createElement('strong')),
-        left_text = document.createTextNode(left),
-        right_text = document.createTextNode(right);
-    bold.appendChild(left_text);
-    p.appendChild(bold);
-    p.appendChild(right_text);
-}
-
-function appendLeftRightSidebarBiblioText(left, right, div) {
-    let p = div.appendChild(document.createElement("p")),
-        bold = div.appendChild(document.createElement('strong')),
-        left_text = document.createTextNode(left),
-        right_text = document.createTextNode(right + ' '),
-        span = document.createElement('span');
-
-    span.style.color = "red";
-    span.appendChild(left_text);
-
-    bold.appendChild(span);
-    p.appendChild(bold);
-    p.appendChild(right_text);
-}
-
-function appendLeftRightSidebarTextWithHref(left, right, div, uri) {
-    let p = div.appendChild(document.createElement("p")),
-        bold = div.appendChild(document.createElement('strong')),
-        left_text = document.createTextNode(left);
-
-    let a = document.createElement("a");
-    a.href = uri;
-    a.target = "_blank";
-    a.textContent = right;
-
-    bold.appendChild(left_text);
-    p.appendChild(bold);
-    p.appendChild(a);
-}
-
-function appendLeftRightSidebarArrayText(left, right, div) {
-    let p = div.appendChild(document.createElement("p")),
-        bold = div.appendChild(document.createElement('strong')),
-        left_text = document.createTextNode(left);
-
-    let ul = document.createElement("ul");
-    right.forEach(function (value) {
-        let li = document.createElement("li");
-        li.textContent = value;
-        ul.appendChild(li);
-    });
-
-    bold.appendChild(left_text);
-    p.appendChild(bold);
-    p.appendChild(ul);
-}
-
-function appendLeftRightSidebarEntitiesText(left, right, biblio_coords, div) {
-    let p = div.appendChild(document.createElement("p")),
-        bold = div.appendChild(document.createElement('strong')),
-        left_text = document.createTextNode(left);
-
-    let ul = document.createElement("ul");
-    right.forEach(function (entity) {
-        let li = document.createElement("li");
-
-        let a = li.appendChild(document.createElement("a"));
-        a.href = entity.uri;
-        a.target = "_blank";
-        a.textContent = entity.title;
-
-        let a2 = document.createElement("a");
-        a2.href = '#';
-        a2.id = entity.id;
-        a2.textContent = '(vedi su mappa)';
-        a2.style.color = "#ad0000";
-
-        a2.appendChild(document.createTextNode('\u00A0'));
-        let img = a2.appendChild(document.createElement("img"));
-        img.setAttribute("src", "https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png");
-        img.setAttribute("height", "15px");
-        img.style.marginLeft = '3px';
-        img.style.marginBottom = '2px';
-
-        a.appendChild(document.createTextNode('\u00A0'));
-        a.appendChild(a2);
-
-        let p = li.appendChild(document.createElement("p"));
-        p.textContent = entity.abstract;
-
-        ul.appendChild(li);
-
-        $(document).on('click', '#' + entity.id, function () {
-            showEntityOnMap(biblio_coords, entity);
-        });
-    });
-
-    bold.appendChild(left_text);
-    p.appendChild(bold);
-    p.appendChild(ul);
-}
-
-/* Coordinates */
-
-L.Map.prototype.setViewOffset = function (latlng, offset) {
-    let targetPoint = this.project(latlng, this.getZoom()).subtract(offset),
-        targetLatLng = this.unproject(targetPoint, this.getZoom());
-    return this.panTo(targetLatLng, this.getZoom());
-};
-
-function clickZoom(marker) {
-    let offset = map.getZoom() <= 9 ? 80 : 60;
-    map.setViewOffset(marker.getLatLng(), [-210, offset]);
-}
-
-/* Utils */
-
-function showEntityOnMap(biblio_coords, entity) {
-
-    let lat1 = Number(biblio_coords.split(',')[0]);
-    let long1 = Number(biblio_coords.split(',')[1]);
-
-    let lat2 = Number(entity.coords.split(',')[0]);
-    let long2 = Number(entity.coords.split(',')[1]);
-
-    let marker = generateMarkerForEntity(lat2, long2, entity);
-
-    if (!isDuplicate(marker)) {
-        oms.addMarker(marker);
-        additionalLayers.push(marker);
-
-        let curve = bezierCurve([lat1, long1], [lat2, long2], 'black');
-        additionalLayers.push(curve);
-
-        let group = L.featureGroup(additionalLayers);
-
-        map.fitBounds(group.getBounds(), {paddingTopLeft: [150, 200], paddingBottomRight: [470, 150]});
-        setTimeout(function () {
-            group.addTo(map);
-        }, 600);
-    }
-}
-
-function isDuplicate(marker) {
+function isDuplicate(marker, type) {
     let dupe = false;
     additionalLayers.forEach(function(layer) {
         if (layer instanceof L.Marker && !dupe) {
-            if (layer.type === 'entity' && layer.data.name === marker.data.name) {
-                dupe = true;
+            if (layer.data.name === marker.data.name) {
+                dupe = (layer.type === type);
             }
         }
     });
@@ -920,6 +1011,8 @@ function isDuplicate(marker) {
 
 function clearAllLayers() {
     try {
+        sidebar.close();
+        oms.clearMarkers();
         layers.map(function (c) {
             c.remove();
         });
@@ -928,12 +1021,6 @@ function clearAllLayers() {
             c.remove();
         });
         additionalLayers = [];
-        bibliosLayers.map(function (c) {
-            c.remove();
-        });
-        bibliosLayers = [];
-        sidebar.close();
-        oms.clearMarkers();
     } catch (e) {
         console.log(e.message);
     }

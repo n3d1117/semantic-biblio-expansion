@@ -265,7 +265,7 @@ def get_geo_entities_for_record():
 @app.route('/api/v1/get_full_record', methods=['GET'])
 def get_full_record():
     record_id = request.args.get('record_id')
-    record = db.query_db('SELECT r.*, p.name as luogo_pubblicazione, e.*, b.name as biblio_name, b.coords as biblio_coords, b.info as biblio_info '
+    record = db.query_db('SELECT r.*, p.name as luogo_pubblicazione, p.coords as published_in_coords, e.*, b.name as biblio_name, b.coords as biblio_coords, b.info as biblio_info '
                          'FROM records r, expanded_records e, places p, biblios b '
                          'WHERE e.id = r.id and r.published_in = p.id and b.id = r.biblio and r.id = {}'.format(record_id))
     result = {
@@ -282,6 +282,7 @@ def get_full_record():
         'format': record[0]['format'],
         'relation': record[0]['relation'],
         'published_in': record[0]['luogo_pubblicazione'],
+        'published_in_coords': record[0]['published_in_coords'],
         'link': record[0]['link'],
         'viaf_id': record[0]['viaf_id'],
         'author_other_works': record[0]['author_other_works'],
@@ -344,6 +345,11 @@ def autocomplete2():
     query = request.args.get('q')
     results = {'suggestions': []}
 
+    # Libri
+    books = db.query_db('SELECT DISTINCT records.title FROM records WHERE title LIKE "%{}%" LIMIT 4'.format(query))
+    for b in books:
+        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Libri'}})
+
     # Autori
     authors = db.query_db(
         'SELECT DISTINCT records.creator FROM records WHERE creator LIKE "%{}%" LIMIT 4'.format(query))
@@ -361,15 +367,11 @@ def autocomplete2():
                 added.append(e)
                 results['suggestions'].append({'value': e, 'data': {'category': 'Soggetti'}})
 
-    # Entità
-    books = db.query_db('SELECT DISTINCT title FROM entities WHERE title LIKE "%{}%" LIMIT 4'.format(query))
-    for b in books:
-        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Argomenti'}})
-
-    # Libri
-    books = db.query_db('SELECT DISTINCT records.title FROM records WHERE title LIKE "%{}%" LIMIT 4'.format(query))
-    for b in books:
-        results['suggestions'].append({'value': b['title'], 'data': {'category': 'Libri'}})
+    # Argomenti
+    args = db.query_db('SELECT DISTINCT title FROM entities WHERE title LIKE "%{}%" LIMIT 4'.format(query))
+    for a in args:
+        if a['title'] not in added:
+            results['suggestions'].append({'value': a['title'], 'data': {'category': 'Argomenti'}})
 
     return jsonify(results)
 
