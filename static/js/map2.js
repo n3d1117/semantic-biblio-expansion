@@ -385,7 +385,7 @@ function generateSidebarBiblioContent(biblio) {
         p.innerHTML = boldString(r.title + generateOtherText(r), query);
 
         $(document).on('click', '#' + r.record_id, function() {
-            fetchRelatedRecordAndPushPanel(r.record_id);
+            fetchRecordAndPushPanel(r.record_id);
         });
 
         let i = p.appendChild(document.createElement("i"));
@@ -525,7 +525,6 @@ function appendLeftRightSidebarBiblioText(left, right, div) {
         right_text = document.createTextNode(right + ' '),
         span = document.createElement('span');
 
-    span.style.color = "red";
     span.appendChild(left_text);
 
     bold.appendChild(span);
@@ -704,7 +703,7 @@ function generateFiltersPane(record) {
 
                     p.innerHTML = r.title + generateOtherTextWithBiblio(r);
                     p.onclick = function () {
-                        fetchRelatedRecordAndPushPanel(r.id);
+                        fetchRecordAndPushPanel(r.id);
                     };
 
                     let gap = section.appendChild(document.createElement("div"));
@@ -726,7 +725,7 @@ function generateFiltersPane(record) {
     return div;
 }
 
-function fetchRelatedRecordAndPushPanel(record_id) {
+function fetchRecordAndPushPanel(record_id) {
     axios.get(`/api/v1/get_full_record?record_id=${record_id}`).then(function (newRecord) {
         let id = 'info-' + record_id;
 

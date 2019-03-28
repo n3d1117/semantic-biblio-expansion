@@ -410,8 +410,6 @@ def related():
 
     query += ' ORDER BY r.title'
 
-    print(query)
-
     res = db.query_db(query)
 
     return jsonify(res)
