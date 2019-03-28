@@ -167,6 +167,9 @@ function generateNumberedBiblioMarker(biblio) {
         bounceOnAddOptions: {duration: rDuration, height: rHeight, loop: rLoop}
     });
 
+    icon1.data = { name: biblio.biblio_name };
+    icon1.type = "biblio";
+
     icon1.bindTooltip(biblio.biblio_name, {
         className: biblio.biblio_name.length > 30 ? "marker-label-longer" : "marker-label",
         direction: biblio.biblio_id === "CBRSA" ? "right" : "left",
@@ -298,6 +301,77 @@ function showEntityOnMap(biblio_coords, entity) {
     }
 }
 
+function showBiblioOnMap(biblio) {
+
+    let lat1 = Number(biblio.old_coords.split(',')[0]);
+    let long1 = Number(biblio.old_coords.split(',')[1]);
+
+    let lat2 = Number(biblio.new_coords.split(',')[0]);
+    let long2 = Number(biblio.new_coords.split(',')[1]);
+
+    let rDuration = getRandomInt(400, 700);
+    let rHeight = getRandomInt(50, 70);
+    let rLoop = getRandomInt(2, 4);
+
+    let marker = L.marker([lat2, long2], {
+        icon: biblioIcon,
+        bounceOnAdd: true,
+        bounceOnAddOptions: {duration: rDuration, height: rHeight, loop: rLoop}
+    });
+
+    marker.data = {name: biblio.name};
+    marker.type = "biblio";
+
+    marker.bindTooltip(biblio.name, {
+        className: biblio.name.length > 30 ? "marker-label-longer" : "marker-label",
+        direction: biblio.id === "CBRSA" ? "right" : "left",
+        offset: biblio.id === "CBRSA" ? [25, -15] : [-20, -15]
+    });
+
+    let div = document.createElement("div");
+    div.className = "landmark";
+    div.style.width = '300px';
+
+    let title = div.appendChild(document.createElement("h1"));
+    title.textContent = biblio.name;
+    title.style.fontSize = '15px';
+
+    let scrollable = div.appendChild(document.createElement("div"));
+    scrollable.className = "scrollable";
+
+    let section = scrollable.appendChild(document.createElement("section"));
+
+    let content = section.appendChild(document.createElement("p"));
+    content.style.wordBreak = 'break-word';
+    content.style.marginTop = '5px';
+    content.style.marginBottom = '7px';
+    content.innerHTML = biblio.info.split(' - ').slice(0, 2).join('<br>');
+    let link = biblio.info.split(' - ')[2];
+    let isMail = link.includes('@');
+    let href = isMail ? 'mailto:' + link : link;
+    content.innerHTML += `<br><a href='${href}'>${link}`;
+
+    marker.bindPopup();
+    marker.setPopupContent(div);
+
+    if (!isDuplicate(marker, 'biblio')) {
+        layers = [];
+        oms.addMarker(marker);
+        additionalLayers.push(marker);
+        layers.push(marker);
+    }
+    let curve = bezierCurve([lat1, long1], [lat2, long2], 'red', true);
+    additionalLayers.push(curve);
+    layers.push(curve);
+
+    let group = L.featureGroup(layers);
+
+    map.fitBounds(group.getBounds(), {paddingTopLeft: [150, 200], paddingBottomRight: [450, 180]});
+    setTimeout(function () {
+        group.addTo(map);
+    }, 600);
+}
+
 function generateMarkerForEntity(lat, long, entity, exact) {
     let marker = L.marker([lat, long], {
         icon: greenIcon,
@@ -385,7 +459,7 @@ function generateSidebarBiblioContent(biblio) {
         p.innerHTML = boldString(r.title + generateOtherText(r), query);
 
         $(document).on('click', '#' + r.record_id, function() {
-            fetchRecordAndPushPanel(r.record_id);
+            fetchRecordAndPushPanel(r.record_id, false, {});
         });
 
         let i = p.appendChild(document.createElement("i"));
@@ -397,17 +471,18 @@ function generateSidebarBiblioContent(biblio) {
         resCount++;
     });
 
+    let displayQuery = ' per "' + query + '"';
     if (section.childElementCount === 0) {
-        h4.textContent = "Nessun risultato trovato";
+        h4.textContent = "Nessun risultato trovato" + displayQuery;
     } else {
-        let ori = resCount === 1 ? ' risultato trovato:' : ' risultati trovati:';
+        let ori = resCount === 1 ? ' risultato trovato' + displayQuery + ':' : ' risultati trovati' + displayQuery + ':';
         h4.textContent = resCount.toString() + ori;
     }
 
     return div.innerHTML;
 }
 
-function generateSidebarRecordContent(record) {
+function generateSidebarRecordContent(record, is_new_biblio, new_biblio) {
 
     let div = document.createElement("div");
     div.id = `res-pane-${record.id}`;
@@ -416,7 +491,11 @@ function generateSidebarRecordContent(record) {
     h1.textContent = record.title;
 
     if (record.biblio_name !== '') {
-        appendLeftRightSidebarBiblioText('Collocazione: ', record.biblio_name, div);
+        if (is_new_biblio) {
+            appendLeftRightSidebarBiblioTextWithHref('Collocazione: ', new_biblio, div);
+        } else {
+            appendLeftRightSidebarBiblioText('Collocazione: ', record.biblio_name, div);
+        }
     }
     if (record.creator !== '') {
         appendLeftRightSidebarText('Autore: ', record.creator, div);
@@ -532,6 +611,38 @@ function appendLeftRightSidebarBiblioText(left, right, div) {
     p.appendChild(right_text);
 }
 
+function appendLeftRightSidebarBiblioTextWithHref(left, biblio, div) {
+    let p = div.appendChild(document.createElement("p")),
+        bold = div.appendChild(document.createElement('strong')),
+        left_text = document.createTextNode(left),
+        right_text = document.createTextNode(biblio.name + ' '),
+        span = document.createElement('span');
+
+    let a2 = document.createElement("a");
+    a2.href = '#';
+    a2.id = 'show_biblio_' + biblio.id;
+    a2.textContent = '(vedi su mappa)';
+    a2.style.color = "#ad0000";
+
+    a2.appendChild(document.createTextNode('\u00A0'));
+    let img = a2.appendChild(document.createElement("img"));
+    img.setAttribute("src", "../static/img/leaflet-biblio.png");
+    img.setAttribute("height", "15px");
+    img.style.marginLeft = '3px';
+    img.style.marginBottom = '2px';
+
+    $(document).on('click', '#' + 'show_biblio_' + biblio.id, function () {
+        showBiblioOnMap(biblio);
+    });
+
+    span.appendChild(left_text);
+
+    bold.appendChild(span);
+    p.appendChild(bold);
+    p.appendChild(right_text);
+    p.appendChild(a2);
+}
+
 function appendLeftRightSidebarTextWithHref(left, right, div, uri) {
     let p = div.appendChild(document.createElement("p")),
         bold = div.appendChild(document.createElement('strong')),
@@ -615,17 +726,36 @@ function appendLeftRightSidebarEntitiesText(left, right, biblio_coords, div) {
 function generateFiltersPane(record) {
     let div = document.createElement("div");
 
-    let h4 = div.appendChild(document.createElement("h3"));
+    let h4 = div.appendChild(document.createElement("h4"));
+    h4.style.fontSize = '20px';
+    h4.style.fontWeight = '500';
+    h4.style.marginBottom = '0px';
     h4.textContent = "Filtri avanzati di ricerca";
+
+    let h5 = div.appendChild(document.createElement("h5"));
+    h5.style.fontSize = '13px';
+    h5.style.fontWeight = 'normal';
+    h5.style.color = 'gray';
+    h5.style.marginTop = '3px';
+    h5.style.marginBottom = '13px';
+    h5.textContent = "Scopri altri libri correlati con questo";
 
     let form = div.appendChild(document.createElement("form"));
 
     if (record.creator !== '') {
-        createCheckbox('filter_autore_' + record.id, 'Ricerca libri di questo autore (' + record.creator.split(' <')[0] + ')', form);
+        createCheckbox('filter_autore_' + record.id, 'Solo libri di questo autore (' + record.creator.split(' <')[0] + ')', form);
+    }
+
+    if (record.biblio_name !== '') {
+        createCheckbox('filter_biblio_' + record.id, 'Solo libri in questa biblioteca (' + record.biblio_name + ')', form);
     }
 
     if (record.publisher !== '') {
-        createCheckbox('filter_casa_editrice_' + record.id, 'Ricerca libri di questo editore (' + record.publisher.split(' <')[0] + ')', form);
+        createCheckbox('filter_casa_editrice_' + record.id, 'Solo libri con questo editore (' + record.publisher.split(' <')[0] + ')', form);
+    }
+
+    if (record.published_in !== '') {
+        createCheckbox('filter_pub_' + record.id, 'Solo libri pubblicati a ' + record.published_in, form);
     }
 
     if (record.entities.length > 0) {
@@ -653,6 +783,16 @@ function generateFiltersPane(record) {
         let publisher = '';
         if (document.getElementById("filter_casa_editrice_" + record.id) && document.getElementById("filter_casa_editrice_" + record.id).checked) {
             publisher = record.publisher;
+        }
+
+        let biblio = '';
+        if (document.getElementById("filter_biblio_" + record.id) && document.getElementById("filter_biblio_" + record.id).checked) {
+            biblio = record.biblio_name;
+        }
+
+        let pub = '';
+        if (document.getElementById("filter_pub_" + record.id) && document.getElementById("filter_pub_" + record.id).checked) {
+            pub = record.published_in;
         }
 
         let arg_id = '';
@@ -685,7 +825,7 @@ function generateFiltersPane(record) {
             }
         }
 
-        axios.get(`/api/v1/related?author=${author}&publisher=${publisher}&arg_id=${arg_id}&dates=${rangeDate}`).then(function (response) {
+        axios.get(`/api/v1/related?author=${author}&publisher=${publisher}&biblio=${biblio}&pub=${pub}&arg_id=${arg_id}&dates=${rangeDate}`).then(function (response) {
 
             let section = document.getElementById("filter_results_section_" + record.id);
             section.innerHTML = '';
@@ -703,7 +843,8 @@ function generateFiltersPane(record) {
 
                     p.innerHTML = r.title + generateOtherTextWithBiblio(r);
                     p.onclick = function () {
-                        fetchRecordAndPushPanel(r.id);
+                        let b = { old_coords: record.biblio_coords, new_coords: r.biblio_coords, name: r.biblio_name, id: r.biblio_id, info: r.biblio_info }
+                        fetchRecordAndPushPanel(r.id, record.biblio_coords !== r.biblio_coords, b);
                     };
 
                     let gap = section.appendChild(document.createElement("div"));
@@ -725,7 +866,7 @@ function generateFiltersPane(record) {
     return div;
 }
 
-function fetchRecordAndPushPanel(record_id) {
+function fetchRecordAndPushPanel(record_id, is_new_biblio, new_biblio) {
     axios.get(`/api/v1/get_full_record?record_id=${record_id}`).then(function (newRecord) {
         let id = 'info-' + record_id;
 
@@ -742,7 +883,7 @@ function fetchRecordAndPushPanel(record_id) {
             id: id,
             tab: `<i class="fa fa-info" style="color: white"><span class="fa-tab-icon-number-small">${infoCount[record_id]}</span></i>`,
             title: 'Informazioni <span class="leaflet-sidebar-close"></span>',
-            pane: generateSidebarRecordContent(newRecord.data),
+            pane: generateSidebarRecordContent(newRecord.data, is_new_biblio, new_biblio),
         });
         sidebar.open(id);
 
@@ -781,6 +922,7 @@ function createElenco(id, args, def, labl, div) {
     let select = document.createElement('select');
     select.name = "args";
     select.id = id;
+    select.style.width = '150px';
     select.style.marginLeft = '7px';
 
     let option = document.createElement('option');
@@ -1005,6 +1147,15 @@ function isDuplicate(marker, type) {
             }
         }
     });
+    if (!dupe) {
+        layers.forEach(function (layer) {
+            if (layer instanceof L.Marker && !dupe) {
+                if (layer.data !== undefined && layer.data.name === marker.data.name) {
+                    dupe = (layer.type === type);
+                }
+            }
+        });
+    }
     return dupe;
 }
 

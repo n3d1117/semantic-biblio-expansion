@@ -380,11 +380,13 @@ def autocomplete2():
 def related():
     author = request.args.get('author')
     publisher = request.args.get('publisher')
+    biblio = request.args.get('biblio')
+    pub = request.args.get('pub')
     # date = request.args.get('date')
     dates = request.args.get('dates')
     arg_id = request.args.get('arg_id')
 
-    query = 'SELECT DISTINCT r.id, b.name as biblio_name, r.title, r.creator, r.date, r.contributor, r.publisher, p.name as place_name, p.coords ' \
+    query = 'SELECT DISTINCT r.id, b.name as biblio_name, b.coords as biblio_coords, b.id as biblio_id, b.info as biblio_info, r.title, r.creator, r.date, r.contributor, r.publisher, p.name as place_name, p.coords ' \
             'FROM records r, places p, biblios b ' \
             'WHERE r.published_in = p.id AND b.id = r.biblio'
 
@@ -395,6 +397,14 @@ def related():
     # Editore
     if publisher is not None and publisher != '':
         query += " AND r.publisher LIKE '%{q}%'".format(q=publisher)
+
+    # Biblioteca
+    if biblio is not None and biblio != '':
+        query += " AND biblio_name LIKE '%{q}%'".format(q=biblio)
+
+    # Luogo di pubblicazione
+    if pub is not None and pub != '':
+        query += " AND place_name LIKE '%{q}%'".format(q=pub)
 
     # Data
     # if date is not None and date != '':
