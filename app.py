@@ -33,6 +33,11 @@ def map_page2():
     return render_template('map2.html')
 
 
+@app.route('/map3')
+def map_page3():
+    return render_template('map3.html')
+
+
 @app.route('/import')
 def do_import():
     return send_file('templates/import_stream.html')
@@ -112,7 +117,7 @@ def search():
         for e in entities:
             if e['coords'] != '':
                 response.append({
-                    'type': 'entity_exact_match' if e['title'].lower() == query.lower() else 'entity',
+                    'type': 'entity',
                     'entity_id': e['entity_id'],
                     'coords': e['coords'],
                     'title': e['title'],
@@ -127,7 +132,7 @@ def search():
         records = db.query_db('SELECT r.id AS record_id, r.title FROM records r, places p WHERE r.published_in = p.id AND p.id={}'.format(p['id']))
         if len(records) > 0:
             response.append({
-                'type': 'place_exact_match' if p['name'].lower() == query.lower() else 'place',
+                'type': 'place',
                 'place_id': p['id'],
                 'coords': p['coords'],
                 'name': p['name'],
@@ -181,32 +186,32 @@ def search2():
 
     response = []
 
-    # search query in entities and places if expansions are enabled
-    if exp:
-        entities = db.query_db('SELECT * FROM entities WHERE title LIKE "{q} %" OR title LIKE "% {q}" OR title LIKE "% {q} %" OR title LIKE "{q}"'.format(q=query))
-        for e in entities:
-            if e['coords'] != '':
-                response.append({
-                    'type': 'entity_exact_match' if e['title'].lower() == query.lower() else 'entity',
-                    'entity_id': e['entity_id'],
-                    'coords': e['coords'],
-                    'title': e['title'],
-                    'abstract': e['abstract'],
-                    'image_url': e['image_url'],
-                    'uri': e['uri']
-                })
-        # search query in places
-        places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))
-        for p in places:
-            response.append({
-                'type': 'place_exact_match' if p['name'].lower() == query.lower() else 'place',
-                'place_id': p['id'],
-                'coords': p['coords'],
-                'name': p['name']
-            })
+    # # search query in entities and places if expansions are enabled
+    # if exp:
+    #     entities = db.query_db('SELECT * FROM entities WHERE title LIKE "{q} %" OR title LIKE "% {q}" OR title LIKE "% {q} %" OR title LIKE "{q}"'.format(q=query))
+    #     for e in entities:
+    #         if e['coords'] != '':
+    #             response.append({
+    #                 'type': 'entity_exact_match' if e['title'].lower() == query.lower() else 'entity',
+    #                 'entity_id': e['entity_id'],
+    #                 'coords': e['coords'],
+    #                 'title': e['title'],
+    #                 'abstract': e['abstract'],
+    #                 'image_url': e['image_url'],
+    #                 'uri': e['uri']
+    #             })
+    #     # search query in places
+    #     places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))
+    #     for p in places:
+    #         response.append({
+    #             'type': 'place_exact_match' if p['name'].lower() == query.lower() else 'place',
+    #             'place_id': p['id'],
+    #             'coords': p['coords'],
+    #             'name': p['name']
+    #         })
 
     # search query in records
-    records = db.query_db('SELECT r.id AS record_id, p.name as place_name, r.title, r.creator, r.contributor, r.publisher, r.date, b.id AS biblio_id '
+    records = db.query_db('SELECT r.id AS record_id, p.name as place_name, r.title, r.creator, r.description, r.subject, r.contributor, r.publisher, r.date, b.id AS biblio_id '
                           'FROM records r, biblios b, places p '
                           'WHERE r.biblio = b.id AND r.published_in = p.id '
                           'AND (r.title LIKE "%{q}%" OR r.subject LIKE "%{q}%" OR r.description LIKE "%{q}%" OR r.creator LIKE "%{q}%" OR r.contributor LIKE "%{q}%" OR r.publisher LIKE "%{q}%")'.format(q=query))
@@ -230,6 +235,8 @@ def search2():
                 'date': r['date'],
                 'publisher': r['publisher'],
                 'contributor': r['contributor'],
+                'description': r['description'],
+                'subject': r['subject'],
                 'creator': r['creator'],
                 'place_name': r['place_name']
             })

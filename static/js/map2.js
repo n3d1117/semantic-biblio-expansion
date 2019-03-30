@@ -330,7 +330,7 @@ function showBiblioOnMap(biblio) {
 
     let div = document.createElement("div");
     div.className = "landmark";
-    div.style.width = '300px';
+    div.style.width = '280px';
 
     let title = div.appendChild(document.createElement("h1"));
     title.textContent = biblio.name;
@@ -471,7 +471,7 @@ function generateSidebarBiblioContent(biblio) {
         resCount++;
     });
 
-    let displayQuery = ' per "' + query + '"';
+    let displayQuery = ' per "' + query + '" in questo archivio';
     if (section.childElementCount === 0) {
         h4.textContent = "Nessun risultato trovato" + displayQuery;
     } else {

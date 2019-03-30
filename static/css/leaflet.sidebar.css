@@ -63,8 +63,10 @@
 .leaflet-sidebar-tabs {
     top: 0;
     bottom: 0;
-    height: 100%;
-    background-color: #fff;
+    height: 80px;
+    background-color: #343a40;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
 }
 
 .leaflet-sidebar-left .leaflet-sidebar-tabs {
@@ -217,22 +219,13 @@
     left: 0;
 }
 
-.leaflet-sidebar {
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.65);
-}
-
 .leaflet-sidebar.leaflet-touch {
     box-shadow: none;
-    border-right: 1px solid rgba(0, 0, 0, 0.2);
 }
 
 @media (min-width: 768px) {
     .leaflet-sidebar {
         border-radius: 6px;
-    }
-
-    .leaflet-sidebar.leaflet-touch {
-        border: 1px solid rgba(0, 0, 0, 0.2);
     }
 }
 
