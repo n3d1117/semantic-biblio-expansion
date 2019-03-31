@@ -127,7 +127,11 @@
                     }
 
                     /* Set the position for the left side of the textNode */
-                    dx = Math.max(0, (pathLength / 2) - (textLength / 2));
+                    if (options.edgeArrow) {
+                        dx = Math.max(0, pathLength - textLength - 170);
+                    } else {
+                        dx = Math.max(0, (pathLength / 2) - (textLength / 2));
+                    }
                 }
 
                 if (options.orientation === 'auto') {

@@ -7,11 +7,13 @@ let osmUrl = 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
     openedInfoPanes = [];
 
 let map = L.map('map', {
-    maxZoom: 15,
+    maxZoom: 16,
     minZoom: 4,
     attributionControl: false,
     fadeAnimation: false
 }).setView(toscana, 9).addLayer(osm);
+
+let bounds = map.getBounds();
 
 let oms = new OverlappingMarkerSpiderfier(map, {keepSpiderfied: true, legWeight: 2});
 
@@ -99,14 +101,19 @@ async function searchPlaces() {
 
         setTimeout(function () {
 
-            map.fitBounds(group.getBounds(), {paddingTopLeft: [100, 150], paddingBottomRight: [100, 50]});
+            try {
+                map.fitBounds(group.getBounds(), {paddingTopLeft: [100, 150], paddingBottomRight: [100, 50]});
+            } catch (error) {
+                isSearching = false;
+                console.error(error);
+            }
 
             setTimeout(function () {
                 group.addTo(map);
 
                 isSearching = false;
 
-                // Attiva automaticamente popup per marker esatti o se il risultato è uno solo
+                // Attiva automaticamente popup se il risultato è uno solo
                 setTimeout(function () {
                     let opened = false;
                     layers.forEach(function (layer) {
@@ -266,52 +273,123 @@ function fetchFullRecordAndShowCurves(id) {
                 place_coords = latLngFromString(record.published_in_coords);
 
             let lay = [];
+            let realLay = [L.marker(biblio_coords)];
+
+            let toAdd = [];
 
             // Luogo di pubblicazione
             if (record.published_in !== 'Firenze') {
                 let ldp_marker = generateMarkerForPlace(place_coords, record.published_in);
-                add(ldp_marker, 'place', place_coords, 'red', true, 'Luogo di pubblicazione: ' + record.published_in);
+                toAdd.push({marker: ldp_marker, type: 'place', coords: place_coords, color: 'red', dash: true, text:'Luogo di pubblicazione: ' + record.published_in, needsArrow: false});
+                realLay.push(ldp_marker);
             }
 
             // Entità
+            let coords = [],
+                dupeCoord = '';
+
             record.entities.forEach(function (entity) {
                 if (entity.title !== 'Firenze') {
+
+                    if (coords.includes(entity.coords)) {
+                        dupeCoord = entity.coords;
+                    } else {
+                        coords.push(entity.coords);
+                    }
+
                     let entity_coords = latLngFromString(entity.coords),
                         marker = generateMarkerForEntity(entity);
-                    add(marker, 'entity', entity_coords, 'black', false, 'Entità: ' + entity.title);
+
+                    let needsArrow = !bounds.contains(entity_coords);
+                    if (!needsArrow) {
+                        realLay.push(marker);
+                    }
+                    toAdd.push({marker: marker, type: 'entity', coords: entity_coords, color: 'black', dash: false, text: 'Entità: ' + entity.title, needsArrow: needsArrow});
+
                 }
             });
 
-            function add(marker, type, coords, color, dash, text) {
-                if (!isDuplicate(marker, type)) {
+            // Entità multiple
+            if (dupeCoord !== '') {
+                let i = 0;
+                toAdd.filter(function (value) {
+                    return stringFromLatLng(value.coords) === dupeCoord;
+                }).forEach(function (value) {
+                    value.text = i === 0 ? 'Entità multiple' : '';
+                    i++;
+                    add(value.marker, value.type, value.coords, value.color, value.dash, value.text, value.needsArrow)
+                });
+            } else {
+                // toAdd.forEach(function (value) {
+                //     add(value.marker, value.type, value.coords, value.color, value.dash, value.text, value.needsArrow)
+                // });
+                coords = toAdd.map(function (value) {
+                    return value.coords;
+                });
+
+                let done = [];
+                coords.forEach(function (c1) {
+
+                    let s1 = stringFromLatLng(c1);
+                    if (!done.includes(s1)) {
+                        done.push(s1);
+
+                        console.log('iterating here');
+
+                        coords.forEach(function (c2) {
+
+                            let s2 = stringFromLatLng(c2);
+
+                            if (!done.includes(s2)) {
+                                done.push(s2);
+
+                                // console.log('double level! ' + map.distance(c1, c2));
+
+                                if (map.distance(c1, c2) < 15000) {
+                                    toAdd.filter(function (value) {
+                                        return stringFromLatLng(value.coords) === s2 || stringFromLatLng(value.coords) === s1;
+                                    }).forEach(function (value) {
+                                        add(value.marker, value.type, value.coords, value.color, value.dash, '', value.needsArrow)
+                                    });
+                                } else {
+                                    toAdd.filter(function (value) {
+                                        return stringFromLatLng(value.coords) === s2 || stringFromLatLng(value.coords) === s1;
+                                    }).forEach(function (value) {
+                                        add(value.marker, value.type, value.coords, value.color, value.dash, value.text, value.needsArrow)
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+
+                if (done.length === 1) {
+                    toAdd.forEach(function (value) {
+                        add(value.marker, value.type, value.coords, value.color, value.dash, value.text, value.needsArrow)
+                    });
+                }
+
+            }
+
+            function add(marker, type, coords, color, dash, text, needsArrow) {
+                if (!isDuplicate(marker, type) && !markerExists(marker)) {
 
                     oms.addMarker(marker);
                     additionalLayers.push(marker);
                     lay.push(marker);
 
-                    if (!markerExists(marker)) {
-
-                        let curve = bezierCurve(biblio_coords, coords, color, dash, text);
-                        additionalLayers.push(curve);
-                        lay.push(curve);
-                    }
+                    let curve = bezierCurve(biblio_coords, coords, color, dash, text, needsArrow);
+                    additionalLayers.push(curve);
+                    lay.push(curve);
                 }
             }
 
+            let realGroup = L.featureGroup(realLay);
             let group = L.featureGroup(lay);
 
-            map.fitBounds(group.getBounds(), {paddingTopLeft: [50, 250], paddingBottomRight: [50, 50]});
+            map.fitBounds(realGroup.getBounds(), {paddingTopLeft: [50, 230], paddingBottomRight: [50, 50]});
             setTimeout(function () {
                 group.addTo(map);
-                setTimeout(function () {
-                    let found = false;
-                    lay.forEach(function(marker) {
-                        if (!found && marker.type === 'entity' && !marker.getLatLng().lat.toString().includes('43.771')) {
-                            marker.openPopup();
-                            found = true;
-                        }
-                    });
-                }, 800);
             }, 600);
         }
 
@@ -1057,6 +1135,10 @@ function latLngFromString(string) {
     return [Number(string.split(',')[0]), Number(string.split(',')[1])];
 }
 
+function stringFromLatLng(coord) {
+    return coord[0].toString() + ',' + coord[1].toString();
+}
+
 function generateRecordInnerHTML(record, query) {
 
     query = query.toLowerCase();
@@ -1116,6 +1198,7 @@ function markerExists(marker) {
 function clearAllLayers() {
     try {
         sidebar.close();
+        hideSidebar();
         oms.clearMarkers();
         layers.map(function (c) {
             c.remove();
@@ -1139,6 +1222,11 @@ function showSidebar() {
     sidebar.classList.remove('hidden');
 }
 
+function hideSidebar() {
+    let sidebar = document.getElementById('sidebar');
+    sidebar.classList.add('hidden');
+}
+
 function boldString(str, find) {
     let re = new RegExp(find, 'i');
     return str.replace(re, '<b>$&</b>');
@@ -1150,9 +1238,9 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// https://gist.github.com/ryancatalani/6091e50bf756088bf9bf5de2017b32e6
+// mid point from https://gist.github.com/ryancatalani/6091e50bf756088bf9bf5de2017b32e6
 
-function bezierCurve(from, to, color, dash, text) {
+function bezierCurve(from, to, color, dash, text, needsArrow) {
     let offsetX = to[1] - from[1],
         offsetY = to[0] - from[0];
     let r = Math.sqrt(Math.pow(offsetX, 2) + Math.pow(offsetY, 2)),
@@ -1163,26 +1251,53 @@ function bezierCurve(from, to, color, dash, text) {
     let midpointX = (r2 * Math.cos(theta2)) + from[1],
         midpointY = (r2 * Math.sin(theta2)) + from[0];
     let midpointLatLng = [midpointY, midpointX];
-    let pathOptions = {color: color, animate: 600, weight: 1, dashArray: dash ? 5 : 0};
+    let pathOptions = {color: color, animate: 600, weight: needsArrow ? 0 : 1, dashArray: dash ? 5 : 0};
 
     let curve = L.curve(['M', from, 'Q', midpointLatLng, to], pathOptions);
 
     let i,
         points = [];
-    let precision = 1000;
+    let precision = 100;
     for (i = 0; i < precision + 1; i++) {
         points.push(getBezierPoint(i / precision, from[0], from[1], midpointLatLng[0], midpointLatLng[1], to[0], to[1]));
     }
-    let dummyPolyline = L.polyline(points, {weight: 0});
-    dummyPolyline.setText(text, {center: true, offset: -5, orientation: 'auto', allowCrop: false});
+    let dummyPolyline = L.polyline(points, {weight: 0, color: color});
+    dummyPolyline.setText(text, {center: true, offset: -8, orientation: 'auto', allowCrop: false});
+
+    let dummyPolyline2 = L.polyline(points, {weight: needsArrow ? 1 : 0, color: color});
+    dummyPolyline2.setText('  ►  ', {center: true, offset: 7, allowCrop: false, edgeArrow: true, clickable: true, attributes: { 'font-size': '20' } }).on('click', function () {
+
+        dummyPolyline2.setText(null);
+
+        let group = L.featureGroup([L.marker(from), L.marker(to)]);
+        map.fitBounds(group.getBounds(), {paddingTopLeft: [50, 230], paddingBottomRight: [50, 50]});
+        setTimeout(function () {
+            let found = false;
+            additionalLayers.forEach(function (marker) {
+                if (!found && marker.type === 'entity' && marker.getLatLng().lat === to[0] && marker.getLatLng().lng === to[1]) {
+                    marker.openPopup();
+                    found = true;
+                }
+            });
+        }, 500);
+    });
 
     curve.on('add', function () {
-        dummyPolyline.addTo(map);
+        setTimeout(function () {
+            dummyPolyline.addTo(map);
+            if (needsArrow) {
+                dummyPolyline2.addTo(map);
+            }
+        }, 100);
     });
 
     curve.on('remove', function () {
         dummyPolyline.remove();
         dummyPolyline.setText(null);
+        if (needsArrow) {
+            dummyPolyline2.remove();
+            dummyPolyline2.setText(null);
+        }
     });
 
     return curve;
@@ -1194,17 +1309,3 @@ function getBezierPoint(t, sx, sy, cpx, cpy, ex, ey) {
         Math.pow(1 - t, 2) * sy + 2 * t * (1 - t) * cpy + t * t * ey
     ]
 }
-
-// let a = bezierCurve([43.771389, 11.254167], [43.318333, 11.331389], 'black', false, 'Entità: Siena');
-// let b = bezierCurve([43.771389, 11.254167], [43.7942, 11.1036], 'red', true, 'Luogo di pubblicazione: Signa');
-//
-// let group = L.featureGroup([a, b]);
-// setTimeout(function () {
-//
-//     map.fitBounds(group.getBounds(), {paddingTopLeft: [100, 150], paddingBottomRight: [100, 50]});
-//
-//     setTimeout(function () {
-//         group.addTo(map);
-//
-//     }, 800);
-// }, 500);
