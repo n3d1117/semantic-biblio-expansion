@@ -211,10 +211,10 @@ def search2():
     #         })
 
     # search query in records
-    records = db.query_db('SELECT r.id AS record_id, p.name as place_name, r.title, r.creator, r.description, r.subject, r.contributor, r.publisher, r.date, b.id AS biblio_id '
-                          'FROM records r, biblios b, places p '
-                          'WHERE r.biblio = b.id AND r.published_in = p.id '
-                          'AND (r.title LIKE "%{q}%" OR r.subject LIKE "%{q}%" OR r.description LIKE "%{q}%" OR r.creator LIKE "%{q}%" OR r.contributor LIKE "%{q}%" OR r.publisher LIKE "%{q}%")'.format(q=query))
+    records = db.query_db('SELECT DISTINCT r.id AS record_id, p.name as place_name, r.title, r.creator, r.description, r.subject, r.contributor, r.publisher, r.date, b.id AS biblio_id '
+                          'FROM records r, biblios b, places p, entities e, entity_for_record en '
+                          'WHERE r.biblio = b.id AND r.published_in = p.id AND en.record_id = r.id AND en.entity_id = e.entity_id '
+                          'AND (r.title LIKE "%{q}%" OR r.subject LIKE "%{q}%" OR r.description LIKE "%{q}%" OR r.creator LIKE "%{q}%" OR r.contributor LIKE "%{q}%" OR r.publisher LIKE "%{q}%" OR e.title LIKE "%{q}%")'.format(q=query))
 
     biblios = []
     for r in records:
