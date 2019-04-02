@@ -10,7 +10,7 @@ let map = L.map('map', {
     maxZoom: 16,
     minZoom: 4,
     attributionControl: false,
-    fadeAnimation: false
+    fadeAnimation: false,
 }).setView(toscana, 9).addLayer(osm);
 
 let bounds = map.getBounds();
@@ -77,13 +77,14 @@ let isSearching = false;
 
 async function searchPlaces() {
 
-    clearAllLayers();
     let query = document.getElementById("search").value;
     if (isSearching || query === '') {
         return false
     }
 
     isSearching = true;
+
+    clearAllLayers();
 
     try {
         const response = await axios.get(`/api/v2/search?q=${query}&expansions=${expansionsEnabled}`);
@@ -123,6 +124,18 @@ async function searchPlaces() {
 
                             setTimeout(function () {
                                 layer.openPopup();
+
+                                setTimeout(function () {
+                                    let b = response.data[0];
+                                    if (b.type === 'biblio') {
+                                        if (b.records.length === 1) {
+                                            // Exact record match
+                                            let id = b.records[0].record_id;
+                                            document.getElementById(id).click();
+                                        }
+                                    }
+                                }, 500);
+
                             }, 300);
                         }
                     })
@@ -233,10 +246,6 @@ function generateNumberedBiblioMarker(biblio) {
             fetchFullRecordAndShowCurves(r.record_id);
         });
 
-        // let info = p.appendChild(document.createElement("i"));
-        // info.className = "fa fa-info-circle";
-        // info.title = "Mostra informazioni per questo record";
-
         let i = p.appendChild(document.createElement("i"));
         i.className = "right-arrow";
 
@@ -257,12 +266,20 @@ function generateNumberedBiblioMarker(biblio) {
     return [icon1, icon2];
 }
 
+let isFetching = false;
 function fetchFullRecordAndShowCurves(id) {
+
+    if (isFetching) {
+        return false;
+    }
+    isFetching = true;
+
     axios.get(`/api/v1/get_full_record?record_id=${id}`).then(function (r) {
 
         setUpSidebar(r.data);
 
         if (expansionsEnabled) {
+
             additionalLayers.map(function (c) {
                 c.remove();
             });
@@ -334,8 +351,6 @@ function fetchFullRecordAndShowCurves(id) {
                     if (!done.includes(s1)) {
                         done.push(s1);
 
-                        console.log('iterating here');
-
                         coords.forEach(function (c2) {
 
                             let s2 = stringFromLatLng(c2);
@@ -343,9 +358,7 @@ function fetchFullRecordAndShowCurves(id) {
                             if (!done.includes(s2)) {
                                 done.push(s2);
 
-                                // console.log('double level! ' + map.distance(c1, c2));
-
-                                if (map.distance(c1, c2) < 15000) {
+                                if (map.distance(c1, c2) < 20000) {
                                     toAdd.filter(function (value) {
                                         return stringFromLatLng(value.coords) === s2 || stringFromLatLng(value.coords) === s1;
                                     }).forEach(function (value) {
@@ -390,6 +403,7 @@ function fetchFullRecordAndShowCurves(id) {
             map.fitBounds(realGroup.getBounds(), {paddingTopLeft: [50, 230], paddingBottomRight: [50, 50]});
             setTimeout(function () {
                 group.addTo(map);
+                isFetching = false;
             }, 600);
         }
 
@@ -506,7 +520,7 @@ function generateMarkerForEntity(entity) {
 
     let abstract = section.appendChild(document.createElement("p"));
     abstract.className = "abstract";
-    abstract.textContent = entity.abstract.split('.')[0] + '.';
+    abstract.textContent = entity.abstract;
 
     let uri = section.appendChild(document.createElement("p"));
     uri.className = "wikipedia-link";
@@ -1197,9 +1211,6 @@ function markerExists(marker) {
 
 function clearAllLayers() {
     try {
-        sidebar.close();
-        hideSidebar();
-        oms.clearMarkers();
         layers.map(function (c) {
             c.remove();
         });
@@ -1208,13 +1219,13 @@ function clearAllLayers() {
             c.remove();
         });
         additionalLayers = [];
+
+        sidebar.close();
+        hideSidebar();
+        oms.clearMarkers();
     } catch (e) {
         console.log(e.message);
     }
-}
-
-function resetSidebarScroll() {
-    document.getElementsByClassName('leaflet-sidebar-pane active')[0].scrollIntoView();
 }
 
 function showSidebar() {
@@ -1261,10 +1272,10 @@ function bezierCurve(from, to, color, dash, text, needsArrow) {
     for (i = 0; i < precision + 1; i++) {
         points.push(getBezierPoint(i / precision, from[0], from[1], midpointLatLng[0], midpointLatLng[1], to[0], to[1]));
     }
-    let dummyPolyline = L.polyline(points, {weight: 0, color: color});
+    let dummyPolyline = L.polyline(points, {opacity: 0, weight: 0, color: color});
     dummyPolyline.setText(text, {center: true, offset: -8, orientation: 'auto', allowCrop: false});
 
-    let dummyPolyline2 = L.polyline(points, {weight: needsArrow ? 1 : 0, color: color});
+    let dummyPolyline2 = L.polyline(points, {weight: needsArrow ? 1 : 0, color: color, opacity: 1});
     dummyPolyline2.setText('  ►  ', {center: true, offset: 7, allowCrop: false, edgeArrow: true, clickable: true, attributes: { 'font-size': '20' } }).on('click', function () {
 
         dummyPolyline2.setText(null);
@@ -1287,6 +1298,7 @@ function bezierCurve(from, to, color, dash, text, needsArrow) {
             dummyPolyline.addTo(map);
             if (needsArrow) {
                 dummyPolyline2.addTo(map);
+                L.path.touchHelper(dummyPolyline2).addTo(map);
             }
         }, 100);
     });
@@ -1295,8 +1307,8 @@ function bezierCurve(from, to, color, dash, text, needsArrow) {
         dummyPolyline.remove();
         dummyPolyline.setText(null);
         if (needsArrow) {
-            dummyPolyline2.remove();
             dummyPolyline2.setText(null);
+            dummyPolyline2.remove();
         }
     });
 
