@@ -4,3 +4,4 @@ wikipedia
 sickle
 flask
 gunicorn
+spacy
