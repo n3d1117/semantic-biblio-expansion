@@ -1,9 +1,9 @@
 import requests
-#import it_core_news_sm
+import it_core_news_sm
 import wikipedia
 from bs4 import BeautifulSoup
 
-#nlp = it_core_news_sm.load()
+nlp = it_core_news_sm.load()
 
 
 def author_cleanup(author):
@@ -79,9 +79,9 @@ def extract_first_geolink_from_wiki_summary(query):
 
 
 # Commento perchè da problemi con heroku
-# def spacy_extract_entities(text):
-#     doc = nlp(text)
-#     return set([e.text for e in doc.ents if len(e.text) > 2 and not e.text.replace('.', '', 1).isdigit()])
+def spacy_extract_entities(text):
+    doc = nlp(text)
+    return set([e.text for e in doc.ents if len(e.text) > 2 and not e.text.replace('.', '', 1).isdigit()])
 
 
 def query_wikipedia(entities):
