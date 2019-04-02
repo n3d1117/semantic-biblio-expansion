@@ -109,7 +109,7 @@ def do_expand():
 
         print(' [*] text: {}'.format(text_to_extract_from))
 
-        entities = spacy_extract_entities(text_to_extract_from)
+        entities = []#spacy_extract_entities(text_to_extract_from)
         print(' [*] received entities: {}'.format(entities))
 
         annotated_entities = query_wikipedia(entities)
