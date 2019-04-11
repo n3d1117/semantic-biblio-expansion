@@ -4,6 +4,7 @@ from xml.dom import minidom
 import wikipedia
 
 
+# Trasforma record Dublin Core in dizionario Python
 def record2dict(r, place_id):
     return {
         'title': r.metadata['title'][0] if 'title' in r.metadata else '',
@@ -23,6 +24,7 @@ def record2dict(r, place_id):
     }
 
 
+# Estrai luogo di pubblicazione da record in formato Unimarc (campo 210)
 def luogo_pubblicazione(r):
     xmldoc = minidom.parseString(r.raw)
     for el in xmldoc.getElementsByTagName('df'):
@@ -38,6 +40,7 @@ def luogo_pubblicazione(r):
     return None
 
 
+# Coordinate del luogo di pubblicazione tramite API di Wikipedia
 def get_coordinates(place):
     wikipedia.set_lang('it')
     try:
@@ -47,6 +50,7 @@ def get_coordinates(place):
         return ''
 
 
+# id pagina wikipedia
 def get_page_id(place):
     wikipedia.set_lang('it')
     try:
@@ -55,9 +59,10 @@ def get_page_id(place):
         return None
 
 
+# elimina record aventi luogo di pubblicazione fuori dalla toscana
+# todo chiamare questa funzione da qualche parte, ad esempio a fine importazione
 def delete_extra():
     db = database.get_db()
-    # elimina record aventi luogo di pubblicazione fuori dalla toscana
     extr = ['36806', '1241244', '1010452', '2175049', '2318427', '2291823', '617150', '29082', '9028', '2588349',
             '20444', '2084359', '8463', '19209', '2508155', '2951758', '108073', '34590', '2986', '2490247', '2949307',
             '3467', '681231', '1291013', '28496', '3028', '1861131', '34448', '1141633', '17781', '660', '27675',
@@ -68,6 +73,7 @@ def delete_extra():
         db.commit()
 
 
+# Importazione record da endpoint OAI
 def do_import(max_num):
 
     x = 0
@@ -143,6 +149,7 @@ def do_import(max_num):
                         count += 1
                         x += bit
 
+                        # Inserisci nella query
                         d = record2dict(record, place_id)
                         array.append((d['title'].strip(), d['subject'], d['creator'], d['contributor'], d['date'],
                                       d['description'], d['language'], d['publisher'], d['type'], d['format'],
@@ -160,6 +167,8 @@ def do_import(max_num):
             break
 
     print(' [*] inserting saved records to the table...')
+
+    # Inserisci nel db
     db.executemany(query, array)
     db.executemany(query2, places)
     db.commit()

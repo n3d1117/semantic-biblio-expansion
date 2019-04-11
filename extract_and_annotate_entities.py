@@ -1,11 +1,12 @@
 import requests
-#import it_core_news_sm
+import it_core_news_sm
 import wikipedia
 from bs4 import BeautifulSoup
 
-#nlp = it_core_news_sm.load()
+nlp = it_core_news_sm.load()
 
 
+# Pulisci campo autore (es. "Rossi, Mario <1754-1823>" -> "Mario Rossi")
 def author_cleanup(author):
     if '<' in author:
         author = author.split(' <')[0]
@@ -15,6 +16,7 @@ def author_cleanup(author):
     return author
 
 
+# Pulisci il testo da sigle e punteggiatura varia
 def clean(text):
     return text.replace('*', '').replace('. - v. : ill.', '').replace('((', '').replace(' :', ':').replace('- /', '-') \
         .replace('A. 1, n. 1 ', '').replace('A. 1, n.1', '').replace(' : [s. n.]', '').replace('- . - v. ;', '') \
@@ -22,6 +24,7 @@ def clean(text):
         .replace(' ; ', ' ').replace('- N. 0 ', '').replace('p.: ill. ', '').replace('A. 1, n. 0 ', '')
 
 
+# Query SPARQL per estrarre le coordinate del luogo di nascita
 def get_birth_location_coords(person):
     url = 'https://query.wikidata.org/sparql'
     query = """
@@ -41,6 +44,7 @@ def get_birth_location_coords(person):
     return None
 
 
+# Query SPARQL per estrarre le coordinate della sede legale
 def get_business_location_coords(org):
     url = 'https://query.wikidata.org/sparql'
     query = """
@@ -60,6 +64,7 @@ def get_business_location_coords(org):
     return None
 
 
+# Estrai le coordinate della prima pagina geolocalizzata citata nell'abstract di Wikipedia
 def extract_first_geolink_from_wiki_summary(query):
     wikipedia.set_lang('it')
     try:
@@ -71,19 +76,21 @@ def extract_first_geolink_from_wiki_summary(query):
         return None
     for a in links:
         try:
-            c = wikipedia.page(a['title']).coordinates
-            return c
+            if a['title'] != 'Italia':  # Escludi pagina Wikipedia 'Italia' che ha delle coordinate troppo generiche
+                c = wikipedia.page(a['title']).coordinates
+                return c
         except:
             continue
     return None
 
 
-# Commento perchè da problemi con heroku
-# def spacy_extract_entities(text):
-#     doc = nlp(text)
-#     return set([e.text for e in doc.ents if len(e.text) > 2 and not e.text.replace('.', '', 1).isdigit()])
+# Estrai entità con Spacy, rimuovendo quelle che hanno solo uno o due caratteri e quelle che sono solo numeri (es. 1990)
+def spacy_extract_entities(text):
+    doc = nlp(text)
+    return set([e.text for e in doc.ents if len(e.text) > 2 and not e.text.replace('.', '', 1).isdigit()])
 
 
+# Chiama API di Wikipedia per annotazione di entità
 def query_wikipedia(entities):
     wiki_url = 'https://it.wikipedia.org/w/api.php'
     params = {

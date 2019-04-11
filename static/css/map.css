@@ -26,6 +26,8 @@ img {
 
 .leaflet-sidebar-tabs > li > a, .leaflet-sidebar-tabs > ul > li > a {
     background-color: #343a40;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
 }
 
 #search {
@@ -65,9 +67,13 @@ img {
 }
 
 .landmark section {
-    max-height: 250px;
+    max-height: 200px;
     padding: 0 17px 5px 12px;
     font-size: 14px;
+}
+
+.landmark p.abstract {
+    font-size: 13px;
 }
 
 .hoverable {
@@ -92,7 +98,7 @@ img {
     background: #212529eb;
     color: white;
     text-align: center;
-    padding: 4px 7px;
+    padding: 2px 7px;
     font-size: 12px;
 }
 
@@ -105,7 +111,7 @@ img {
 }
 
 .wikipedia-link {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: bolder;
     letter-spacing: 1px;
     padding-bottom: 7px;
@@ -155,15 +161,15 @@ i.right-arrow {
 
 .record-smaller {
     color: gray;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .leaflet-popup-content p {
-    margin: 10px 0;
+    margin: 8px 0;
 }
 
 .leaflet-sidebar-tabs {
-    background-color: #fcfcfc;
+    background-color: #343a40;
 }
 
 /* Legend specific */
@@ -213,11 +219,11 @@ i.right-arrow {
 
 #sidebar h4 {
     font-size: 18px;
-    margin-top: 10px;
+    margin-top: 18px;
 }
 
 #sidebar p {
-    font-size: 14px;
+    font-size: 15px;
     margin-bottom: 5px;
 }
 
@@ -232,21 +238,16 @@ ul {
 
 .leaflet-sidebar.collapsed {
     width: 40px;
-    opacity: 0;
 }
 
 .leaflet-sidebar-pane.active {
     padding-right: 15px;
 }
 
-::-webkit-scrollbar {
-    width: 0;
-    background: transparent;
-}
 
 /*.leaflet-sidebar-right .leaflet-sidebar-header {*/
-    /*position: sticky;*/
-    /*top: 0;*/
+/*position: sticky;*/
+/*top: 0;*/
 /*}*/
 
 /* Toggle expansion */
@@ -343,4 +344,71 @@ form label {
 
 .record-title.res {
     padding-right: 0;
+}
+
+/* New */
+
+.marker-numbered-icon {
+    width: 24px !important;
+    height: 24px !important;
+    margin-left: 0;
+    margin-top: -42px;
+    border-radius: 18px;
+    border: 2px solid #dc3545;
+    text-align: center;
+    color: #dc3545;
+    background-color: rgb(249, 249, 249);
+    font-size: 13px;
+}
+
+.marker-numbered-icon-smaller {
+    width: 24px !important;
+    height: 24px !important;
+    margin-left: 0;
+    margin-top: -42px;
+    border-radius: 18px;
+    border: 2px solid #dc3545;
+    text-align: center;
+    color: #dc3545;
+    background-color: rgb(249, 249, 249);
+    font-size: 10px;
+}
+
+.numbered-text {
+    position: relative;
+    top: 1px;
+}
+
+.numbered-text-smaller {
+    position: relative;
+    top: 3px;
+}
+
+.fa-tab-icon-number-small {
+    margin-left: 2px;
+    font: 8px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
+    font-weight: bold;
+}
+
+.curve-tooltip {
+    text-align: center;
+    font-size: 10px;
+    white-space: normal;
+}
+
+.leaflet-sidebar.hidden {
+    opacity: 0;
+}
+
+.leaflet-sidebar-tabs > li:hover, .leaflet-sidebar-tabs > ul > li:hover {
+    color: #343a40;
+    background-color: transparent;
+}
+
+.leaflet-sidebar-tabs > li.active, .leaflet-sidebar-tabs > ul > li.active {
+    background-color: transparent;
+}
+
+.leaflet-sidebar-right .leaflet-sidebar-content {
+    border-bottom-right-radius: 6px;
 }

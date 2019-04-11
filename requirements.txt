@@ -3,5 +3,4 @@ beautifulsoup4
 wikipedia
 sickle
 flask
-gunicorn
 spacy

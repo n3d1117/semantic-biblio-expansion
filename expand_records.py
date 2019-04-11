@@ -3,6 +3,7 @@ from lxml import etree
 from extract_and_annotate_entities import *
 
 
+# Restituisce l'id VIAF, se trovato, dell'autore del libro (record['creator'])
 def get_author_viaf_id(record):
 
     # escludi campi creator con nomi di città
@@ -21,6 +22,7 @@ def get_author_viaf_id(record):
     return ''
 
 
+# Restituisce la biografia dell'autore del libro, se trovato (record['creator'])
 def get_author_wikipedia_info(record):
     try:
         wikipedia.set_lang('it')
@@ -33,6 +35,7 @@ def get_author_wikipedia_info(record):
         return None
 
 
+# Restituisce la pagina Wikipedia estratta dal VIAF
 def get_author_wikipedia_page(viaf_id):
     response = requests.get('https://viaf.org/viaf/{}/viaf.xml'.format(viaf_id))
     tree = etree.fromstring(response.content)
@@ -42,6 +45,7 @@ def get_author_wikipedia_page(viaf_id):
     return None
 
 
+# Restituisce un elenco di altre opere dello stesso autore, prese da VIAF
 def get_opere(viaf_id):
     response = requests.get('https://viaf.org/viaf/{}/viaf.xml'.format(viaf_id))
     tree = etree.fromstring(response.content)
@@ -53,7 +57,7 @@ def get_opere(viaf_id):
             break
     return opere
 
-
+# Esegui espansione
 def do_expand():
 
     x = 0
@@ -68,7 +72,7 @@ def do_expand():
     db.execute("delete from sqlite_sequence where name='entity_for_record'")
 
     print(' [*] requesting records via API...')
-    r = requests.get('http://127.0.0.1:5000/api/v1/records')
+    r = requests.get('http://127.0.0.1:5000/api/v1/records')  # !!! Da cambiare
     json = r.json()
 
     exp = []
@@ -91,6 +95,7 @@ def do_expand():
         wiki_page = ''
         wiki_info = ''
 
+        # Estrai informazioni autore
         if viaf_id != '':
             opere = get_opere(viaf_id)
             wiki = get_author_wikipedia_page(viaf_id)
@@ -104,18 +109,22 @@ def do_expand():
 
         exp.append((id, viaf_id, altre_opere, wiki_page, wiki_info))
 
+        # Testo su cui fare estrazione di entità: descrizione, soggetti, autore e autore secondario
         text_to_extract_from = clean(record['description']) + ', ' + record['subject'] + ', ' + \
                                author_cleanup(record['creator']) + ', ' + author_cleanup(record['contributor'])
 
         print(' [*] text: {}'.format(text_to_extract_from))
 
-        entities = []#spacy_extract_entities(text_to_extract_from)
+        # Salva entità estratte (array di stringhe)
+        entities = spacy_extract_entities(text_to_extract_from)
         print(' [*] received entities: {}'.format(entities))
 
+        # Annota le entità
         annotated_entities = query_wikipedia(entities)
         print(' [*] received annotated entities: {}'.format(annotated_entities))
         print()
 
+        # Inserisci le entità annotate nella query
         for entity in annotated_entities:
             if entity['coords'] != '':
                 exp2.append((entity['id'], entity['title'], entity['abstract'], entity['image'], entity['coords'], entity['uri']))
@@ -129,6 +138,8 @@ def do_expand():
             yield "data: {}%%{}\n\n".format(str(x), desc)
 
     print(' [*] inserting expanded records to the table...')
+
+    # Esegui le varie INSERT nel db
     db.executemany(query, exp)
 
     print(' [*] inserting entities...')

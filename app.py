@@ -28,16 +28,6 @@ def map_page():
     return render_template('map.html')
 
 
-@app.route('/map2')
-def map_page2():
-    return render_template('map2.html')
-
-
-@app.route('/map3')
-def map_page3():
-    return render_template('map3.html')
-
-
 @app.route('/import')
 def do_import():
     return send_file('templates/import_stream.html')
@@ -182,33 +172,8 @@ def search():
 @app.route('/api/v2/search', methods=['GET'])
 def search2():
     query = request.args.get('q')
-    exp = request.args.get('expansions') == 'true'
 
     response = []
-
-    # # search query in entities and places if expansions are enabled
-    # if exp:
-    #     entities = db.query_db('SELECT * FROM entities WHERE title LIKE "{q} %" OR title LIKE "% {q}" OR title LIKE "% {q} %" OR title LIKE "{q}"'.format(q=query))
-    #     for e in entities:
-    #         if e['coords'] != '':
-    #             response.append({
-    #                 'type': 'entity_exact_match' if e['title'].lower() == query.lower() else 'entity',
-    #                 'entity_id': e['entity_id'],
-    #                 'coords': e['coords'],
-    #                 'title': e['title'],
-    #                 'abstract': e['abstract'],
-    #                 'image_url': e['image_url'],
-    #                 'uri': e['uri']
-    #             })
-    #     # search query in places
-    #     places = db.query_db('SELECT * from places WHERE name LIKE "%{}%"'.format(query))
-    #     for p in places:
-    #         response.append({
-    #             'type': 'place_exact_match' if p['name'].lower() == query.lower() else 'place',
-    #             'place_id': p['id'],
-    #             'coords': p['coords'],
-    #             'name': p['name']
-    #         })
 
     # search query in records
     records = db.query_db('SELECT DISTINCT r.id AS record_id, p.name as place_name, r.title, r.creator, r.description, r.subject, r.contributor, r.publisher, r.date, b.id AS biblio_id '

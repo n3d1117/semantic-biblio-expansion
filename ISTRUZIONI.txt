@@ -1,0 +1,39 @@
+
+- Link github: https://github.com/n3d1117/semantic-biblio-expansion
+- Link demo: http://semantic-biblio-expansion.herokuapp.com/map3
+
+_____________________________________________________________________________________
+
+
+ISTRUZIONI PER L'USO:
+
+Installare tutte le librerie in requirements.txt, e installare anche il modello italiano di Spacy (https://spacy.io/models) con questo comando: 
+
+python -m spacy download it_core_web_sm
+
+
+Il progetto usa Flask (http://flask.pocoo.org) per il backend, quindi per farlo partire serve il seguente comando:
+
+FLASK_APP=app.py flask run
+
+(N.B. Io ho usato PyCharm come IDE che offre già una integrazione con Flask, per cui basta premere il pulsante di run e fa tutto lui)
+
+A questo punto l'interfaccia web si troverà in localhost:5000/map3 (map e map2 sono versioni precedenti)
+
+
+Per il deployment ho usato Heroku seguendo questa guida: https://medium.com/the-andela-way/deploying-a-python-flask-app-to-heroku-41250bda27d0
+(N.B. per il deployment nel branch 'heroku' ho dovuto commentare il codice che importava Spacy perchè mi dava errori)
+
+_____________________________________________________________________________________
+
+IMPORTAZIONE/ESPANSIONE DI RECORD:
+
+- Editare number_of_records_to_import in app.py per definire il numero di record da importare
+
+- da browser andare su /import/ per avviare il processo di importazione (chiama do_import() in import_records.py), una barra di caricamento mostrerà il progresso (N.B prima di iniziare verrà cancellato tutto ciò che è nel database)
+
+- una volta finita l'importazione seguire il link 'Expand them all' (/expand/) per avviare l'espansione (chiama do_expand() in expand_records.py)
+
+- finita l'espansione tutti i dati saranno nel database sqlite (cartella database/database.db), vedere schema.sql per la struttura
+
+(N.B. La tabella 'biblios' che riguarda le biblioteche è stata popolata a mano con i dati presenti in 'biblioteche.json')
